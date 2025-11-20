@@ -6,7 +6,7 @@ import type { PhraseSet } from '../types'
 export function CreatePage() {
   const [title, setTitle] = useState('VC Bingo')
   const [genre, setGenre] = useState('Christmas party')
-  const [isPublic, setIsPublic] = useState(true)
+  const [isPublic, setIsPublic] = useState(false)
   const [freeSpace, setFreeSpace] = useState(true)
   const [phrasesText, setPhrasesText] = useState(
     ['AI-powered', 'Runway', 'Synergy', 'Pivot', 'We are different', 'Let me circle back', 'Can we park this?'].join(
@@ -41,10 +41,13 @@ export function CreatePage() {
     .map((phrase) => phrase.trim())
     .filter(Boolean)
 
-  const gridSize = phrases.length < 4 ? 1 : phrases.length < 9 ? 2 : phrases.length < 16 ? 3 : phrases.length < 24 ? 4 : 5
+  const gridSize =
+    phrases.length < 4 ? 1 : phrases.length < 9 ? 2 : phrases.length < 16 ? 3 : phrases.length < 24 ? 4 : 5
   const nextThreshold =
     gridSize === 1 ? 4 : gridSize === 2 ? 9 : gridSize === 3 ? 16 : gridSize === 4 ? 24 : null
   const neededForNext = nextThreshold ? Math.max(0, nextThreshold - phrases.length) : null
+  const freeSpaceLocked = phrases.length < 25
+  const effectiveFreeSpace = freeSpaceLocked ? true : freeSpace
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -57,7 +60,7 @@ export function CreatePage() {
     }
 
     try {
-      await mutation.mutateAsync({ title: title.trim(), phrases, isPublic, freeSpace })
+      await mutation.mutateAsync({ title: title.trim(), phrases, isPublic, freeSpace: effectiveFreeSpace })
     } catch {
       // handled by mutation.error
     }
@@ -204,13 +207,22 @@ export function CreatePage() {
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-teal-300"
-                checked={freeSpace}
-                onChange={(e) => setFreeSpace(e.target.checked)}
+                checked={effectiveFreeSpace}
+                disabled={freeSpaceLocked}
+                onChange={(e) => {
+                  if (freeSpaceLocked) {
+                    setFreeSpace(true)
+                    return
+                  }
+                  setFreeSpace(e.target.checked)
+                }}
               />
               <span>
                 <span className="font-semibold text-white">Free space</span>
                 <span className="block text-xs text-slate-400">
-                  Keep the center FREE; toggle off to use another phrase.
+                  {freeSpaceLocked
+                    ? 'Automatically enabled until you have 25+ phrases.'
+                    : 'Keep the center FREE; toggle off to use another phrase.'}
                 </span>
               </span>
             </label>

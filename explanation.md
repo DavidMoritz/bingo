@@ -6,7 +6,7 @@
 - **Build/Dev**: Vite powers fast dev server and optimized builds; `npm run dev` for each side, `npm run build` for production bundles.
 
 ## Backend (Express, TypeScript)
-- **Entrypoint**: `src/server.ts` sets up Express with JSON parsing and CORS.
+- **Entrypoint**: `src/app.ts` builds the Express app (JSON parsing + CORS); `src/server.ts` simply boots it. This keeps the app testable without binding a port.
 - **Phrase sets**: Stored in an in-memory `Map<string, PhraseSet>`; generated codes are 6-char alphanumeric. Each `PhraseSet` holds `title`, `phrases`, `isPublic`, `freeSpace`, timestamps, and rating aggregates (`ratingTotal`, `ratingCount`, `ratingAverage`).
 - **Endpoints**:
   - `GET /health` — basic status.
@@ -34,21 +34,21 @@
 - **Create flow (`front/src/pages/Create.tsx`)**:
   - Title input, genre-to-suggestions helper, and phrases textarea.
   - Formatting help modal explains: one-per-line, `A | B` OR syntax (one chosen randomly), priority via `*` prefix, and center FREE note.
-  - Toggles: `Public` (discoverable) and `Free space` (center FREE cell on/off).
+  - Toggles: `Public` (discoverable, default on) and `Free space` (center FREE cell on/off, only matters for 5×5).
   - Suggestion button: if the user edited phrases, it appends unique suggestions until 30; otherwise replaces with ~24–30 suggested phrases.
   - Submits to `POST /phrase-sets`; displays returned code and metadata.
 - **Join flow (`front/src/pages/Join.tsx`)**:
   - Direct code entry navigates to `/game/{code}`.
-  - Public search hits `GET /phrase-sets/public` with query; results show title, code, snippet of phrases, created date, and rating. Click to join.
+  - Public search hits `GET /phrase-sets/public` with query; results show title, code, snippet of phrases, created date, and rating. Click to join. Lists are sorted by rating then recency.
 - **Game flow (`front/src/pages/Game.tsx`)**:
-  - Loader-provided phrase set generates a 5×5 board via `createBingoBoard` (with FREE center toggle). Cells toggle selection on click.
+  - Loader-provided phrase set generates a board sized to phrase count: <4 → 1×1; <9 → 2×2; <16 → 3×3; <24 → 4×4; 24+ → 5×5 (FREE center only on 5×5 if enabled). Cells toggle selection on click.
   - Supports OR phrases and priority phrases: `*` forces inclusion; `A | B` picks one per line; all are shuffled and deduped.
   - Ratings: inline 1–5 star widget posts to `/phrase-sets/:code/rate`; after submission, stars are replaced with a “Thank you” chip; averages/count shown.
   - Reshuffle uses the same phrase set and respects the free-space flag.
 
 ## Utilities and Logic
 - **Board generation** (`front/src/lib/bingo.ts`):
-  - Parses phrases, resolves OR options, honors priority (`*`) first (shuffled), then fills remaining slots; dedupes; optionally inserts FREE center.
+  - Parses phrases, resolves OR options, honors priority (`*`) first (shuffled), then fills remaining slots; dedupes; auto-selects grid size, and only inserts FREE center for 5×5.
   - `toggleCell` flips selection for non-free cells.
 - **API helpers** (`front/src/lib/api.ts`):
   - `createPhraseSet`, `fetchPhraseSet`, `fetchPublicPhraseSets`, `suggestPhrases`, `ratePhraseSet`.
@@ -62,6 +62,7 @@
 - **Backend**: `npm install` (root), then `npm run dev` (ts-node/tsx watch) or `npm start`. Default port 3000; set `PORT` to override.
 - **Frontend**: `cd front && npm install`, `npm run dev` for Vite HMR, `npm run build` for production assets. Needs Node ≥ 20.19 for Vite 7.
 - **Environment**: Set `VITE_API_URL` in `front` to point to the backend if not `http://localhost:3000`.
+- **Tests**: Backend `npm test` (Vitest, no network binding) for public search and helpers. Frontend `cd front && npm test` (Vitest/jsdom) for board sizing/priority/OR handling.
 
 ## Data/Bugs/Notes
 - **Persistence**: Backend is in-memory; restarting wipes data and ratings. Swap `Map` for a DB/file to persist.
