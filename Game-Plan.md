@@ -269,3 +269,4 @@ Notes / next backend steps
 	•	Server creates themed suggestions via templates + fallback; returns up to 30 phrases
 	•	Create page: “Suggest phrases” button fills the textarea from the genre/vibe field
 	•	Templates auto-loaded from src/suggestions/*.json (fallback prefixes/nouns embedded in server)
+	•	Added templates: beach, mountains/ski, amusement park, zoo, big city, 4th of July, parade
