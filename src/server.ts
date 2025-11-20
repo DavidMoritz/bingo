@@ -9,11 +9,15 @@ type PhraseSet = {
   title: string
   phrases: string[]
   createdAt: string
+  isPublic: boolean
+  freeSpace: boolean
 }
 
 type PhraseSetInput = {
   title: string
   phrases: string[]
+  isPublic: boolean
+  freeSpace: boolean
 }
 
 type PhraseSuggestionResponse = {
@@ -36,7 +40,7 @@ app.get('/health', (_req, res) => {
 
 app.post('/phrase-sets', (req, res, next) => {
   try {
-    const { title, phrases } = parsePhraseSetInput(req.body)
+    const { title, phrases, isPublic, freeSpace } = parsePhraseSetInput(req.body)
 
     const code = createUniqueCode()
     const phraseSet: PhraseSet = {
@@ -44,6 +48,8 @@ app.post('/phrase-sets', (req, res, next) => {
       title,
       phrases,
       createdAt: new Date().toISOString(),
+      isPublic,
+      freeSpace,
     }
 
     phraseSets.set(code, phraseSet)
@@ -89,7 +95,7 @@ function parsePhraseSetInput(body: unknown): PhraseSetInput {
     throw badRequest('Body must be an object')
   }
 
-  const { title, phrases } = body as Record<string, unknown>
+  const { title, phrases, isPublic, freeSpace } = body as Record<string, unknown>
 
   if (typeof title !== 'string' || !title.trim()) {
     throw badRequest('title must be a non-empty string')
@@ -110,6 +116,8 @@ function parsePhraseSetInput(body: unknown): PhraseSetInput {
   return {
     title: title.trim(),
     phrases: sanitizedPhrases,
+    isPublic: Boolean(isPublic),
+    freeSpace: freeSpace === false ? false : true,
   }
 }
 

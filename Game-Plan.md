@@ -277,3 +277,4 @@ Notes / next backend steps
 	•	Phrases starting with “*” are treated as priority and included first on the board
 	•	Phrases field now has a help modal explaining one-per-line, pipes, and priorities
 	•	Priority phrases are also shuffled before filling the grid (no fixed order)
+	•	PhraseSet now stores isPublic and freeSpace flags; create form exposes toggles (free space defaults on)

@@ -3,6 +3,8 @@ export type PhraseSet = {
   title: string
   phrases: string[]
   createdAt: string
+  isPublic: boolean
+  freeSpace: boolean
 }
 
 export type BingoCell = {

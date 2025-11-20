@@ -2,7 +2,12 @@ import type { PhraseSet } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
-export async function createPhraseSet(input: { title: string; phrases: string[] }): Promise<PhraseSet> {
+export async function createPhraseSet(input: {
+  title: string
+  phrases: string[]
+  isPublic: boolean
+  freeSpace: boolean
+}): Promise<PhraseSet> {
   const response = await fetch(`${API_BASE}/phrase-sets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

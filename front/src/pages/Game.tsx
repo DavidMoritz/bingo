@@ -7,7 +7,7 @@ type GamePageProps = {
 }
 
 export function GamePage({ phraseSet }: GamePageProps) {
-  const [board, setBoard] = useState<BingoBoard>(() => createBingoBoard(phraseSet))
+  const [board, setBoard] = useState<BingoBoard>(() => createBingoBoard(phraseSet, phraseSet.freeSpace))
 
   const selectedCount = useMemo(() => board.cells.filter((c) => c.selected).length, [board])
 
@@ -16,7 +16,7 @@ export function GamePage({ phraseSet }: GamePageProps) {
   }
 
   function reshuffle() {
-    setBoard(createBingoBoard(phraseSet))
+    setBoard(createBingoBoard(phraseSet, phraseSet.freeSpace))
   }
 
   return (

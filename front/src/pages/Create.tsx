@@ -6,6 +6,8 @@ import type { PhraseSet } from '../types'
 export function CreatePage() {
   const [title, setTitle] = useState('VC Bingo')
   const [genre, setGenre] = useState('Christmas party')
+  const [isPublic, setIsPublic] = useState(false)
+  const [freeSpace, setFreeSpace] = useState(true)
   const [phrasesText, setPhrasesText] = useState(
     ['AI-powered', 'Runway', 'Synergy', 'Pivot', 'We are different', 'Let me circle back', 'Can we park this?'].join(
       '\n'
@@ -15,7 +17,8 @@ export function CreatePage() {
   const [showPhraseHelp, setShowPhraseHelp] = useState(false)
 
   const mutation = useMutation({
-    mutationFn: (input: { title: string; phrases: string[] }) => createPhraseSet(input),
+    mutationFn: (input: { title: string; phrases: string[]; isPublic: boolean; freeSpace: boolean }) =>
+      createPhraseSet(input),
     onSuccess: (data) => setResult(data),
   })
 
@@ -40,7 +43,7 @@ export function CreatePage() {
     }
 
     try {
-      await mutation.mutateAsync({ title: title.trim(), phrases })
+      await mutation.mutateAsync({ title: title.trim(), phrases, isPublic, freeSpace })
     } catch {
       // handled by mutation.error
     }
@@ -140,6 +143,35 @@ export function CreatePage() {
             <p className="text-xs text-slate-400">
               Currently {phrases.length} phrase{phrases.length === 1 ? '' : 's'} (center FREE slot makes 24 needed).
             </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-teal-300"
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+              />
+              <span>
+                <span className="font-semibold text-white">Public</span>
+                <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
+              </span>
+            </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-teal-300"
+                checked={freeSpace}
+                onChange={(e) => setFreeSpace(e.target.checked)}
+              />
+              <span>
+                <span className="font-semibold text-white">Free space</span>
+                <span className="block text-xs text-slate-400">
+                  Keep the center FREE; toggle off to use another phrase.
+                </span>
+              </span>
+            </label>
           </div>
 
           <div className="flex items-center gap-3">
