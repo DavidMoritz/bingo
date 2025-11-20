@@ -33,7 +33,7 @@ export function HomePage() {
                 to="/join"
                 className="inline-flex items-center justify-center rounded-xl border border-white/20 px-5 py-3 text-base font-semibold text-white transition hover:bg-white/10"
               >
-                Join with a code
+                Play Bingo!
               </Link>
             </div>
           </div>

@@ -41,6 +41,11 @@ export function CreatePage() {
     .map((phrase) => phrase.trim())
     .filter(Boolean)
 
+  const gridSize = phrases.length < 4 ? 1 : phrases.length < 9 ? 2 : phrases.length < 16 ? 3 : phrases.length < 24 ? 4 : 5
+  const nextThreshold =
+    gridSize === 1 ? 4 : gridSize === 2 ? 9 : gridSize === 3 ? 16 : gridSize === 4 ? 24 : null
+  const neededForNext = nextThreshold ? Math.max(0, nextThreshold - phrases.length) : null
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     mutation.reset()
@@ -177,7 +182,8 @@ export function CreatePage() {
               placeholder="Each line becomes a cell"
             />
             <p className="text-xs text-slate-400">
-              Currently {phrases.length} phrase{phrases.length === 1 ? '' : 's'} (center FREE slot makes 24 needed).
+              Currently {phrases.length} phrase{phrases.length === 1 ? '' : 's'}: {gridSize}×{gridSize} grid &mdash;{' '}
+              {nextThreshold ? `${neededForNext} needed for ${gridSize + 1}×${gridSize + 1}.` : 'Max size reached.'}
             </p>
           </div>
 
@@ -273,6 +279,7 @@ export function CreatePage() {
                 <li>
                   Center is FREE, so aim for at least 24 phrases to fill the grid.
                 </li>
+                <li>Grid scales with phrase count: <br></br>&lt;4 → 1×1, &lt;9 → 2×2, &lt;16 → 3×3, &lt;24 → 4×4, otherwise 5×5.</li>
               </ul>
             </div>
           </div>

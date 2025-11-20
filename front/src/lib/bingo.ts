@@ -1,12 +1,13 @@
 import type { BingoBoard, BingoCell, PhraseSet } from '../types'
 
-const GRID_SIZE = 5
-const CENTER_INDEX = Math.floor((GRID_SIZE * GRID_SIZE) / 2)
-
 export function createBingoBoard(phraseSet: PhraseSet, useFreeCenter = true): BingoBoard {
   const parsed = phraseSet.phrases
     .map(parsePhrase)
     .filter((item): item is ParsedPhrase => Boolean(item && item.text.trim().length > 0))
+
+  const gridSize = pickGridSize(parsed.length)
+  const allowFreeCenter = useFreeCenter && gridSize === 5
+  const cellsNeeded = gridSize * gridSize - (allowFreeCenter ? 1 : 0)
 
   const priorityPhrases = parsed
     .filter((p) => p.priority)
@@ -15,16 +16,21 @@ export function createBingoBoard(phraseSet: PhraseSet, useFreeCenter = true): Bi
     .filter((p) => !p.priority)
     .map((p) => p.text)
 
-  const needed = useFreeCenter ? GRID_SIZE * GRID_SIZE - 1 : GRID_SIZE * GRID_SIZE
   const pool = [...shuffle(priorityPhrases), ...shuffle(regularPhrases)]
   const unique = Array.from(new Set(pool))
-  const selectedPhrases = unique.slice(0, needed)
+
+  while (unique.length < cellsNeeded) {
+    unique.push('')
+  }
+
+  const selectedPhrases = unique.slice(0, cellsNeeded)
 
   const cells: BingoCell[] = []
   let phraseIndex = 0
+  const centerIndex = Math.floor((gridSize * gridSize) / 2)
 
-  for (let index = 0; index < GRID_SIZE * GRID_SIZE; index++) {
-    if (useFreeCenter && index === CENTER_INDEX) {
+  for (let index = 0; index < gridSize * gridSize; index++) {
+    if (allowFreeCenter && index === centerIndex) {
       cells.push({
         id: `cell-${index}`,
         text: 'FREE',
@@ -44,6 +50,8 @@ export function createBingoBoard(phraseSet: PhraseSet, useFreeCenter = true): Bi
   return {
     code: phraseSet.code,
     title: phraseSet.title,
+    gridSize,
+    usesFreeCenter: allowFreeCenter,
     cells,
   }
 }
@@ -91,4 +99,12 @@ function shuffle<T>(items: T[]): T[] {
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
   return arr
+}
+
+function pickGridSize(phraseCount: number): number {
+  if (phraseCount < 4) return 1
+  if (phraseCount < 9) return 2
+  if (phraseCount < 16) return 3
+  if (phraseCount < 24) return 4
+  return 5
 }

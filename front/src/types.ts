@@ -20,5 +20,7 @@ export type BingoCell = {
 export type BingoBoard = {
   code: string
   title: string
+  gridSize: number
+  usesFreeCenter: boolean
   cells: BingoCell[]
 }

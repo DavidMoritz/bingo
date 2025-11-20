@@ -281,4 +281,5 @@ Notes / next backend steps
 	•	Suggest button: if user edited phrases, suggestions only append new lines until reaching 30 total
 	•	Ratings: players can rate 1–5 stars; public search shows ratings and sorts higher scores first
 	•	After rating, stars are replaced inline with a “Thank you” chip (no board refresh)
+	•	Grid size scales with phrase count: <4 → 1×1, <9 → 2×2, <16 → 3×3, <24 → 4×4, else 5×5 (free space only on 5×5)
 	•	Join screen: search public boards via new /phrase-sets/public endpoint (query title/code/phrase)

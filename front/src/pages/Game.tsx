@@ -80,7 +80,10 @@ export function GamePage({ phraseSet }: GamePageProps) {
         </div>
       </header>
 
-      <div className="grid grid-cols-5 gap-2 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl shadow-black/40">
+      <div
+        className="grid gap-2 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl shadow-black/40"
+        style={{ gridTemplateColumns: `repeat(${board.gridSize}, minmax(0, 1fr))` }}
+      >
         {board.cells.map((cell) => (
           <button
             key={cell.id}
