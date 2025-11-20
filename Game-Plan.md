@@ -283,3 +283,4 @@ Notes / next backend steps
 	•	After rating, stars are replaced inline with a “Thank you” chip (no board refresh)
 	•	Grid size scales with phrase count: <4 → 1×1, <9 → 2×2, <16 → 3×3, <24 → 4×4, else 5×5 (free space only on 5×5)
 	•	Join screen: search public boards via new /phrase-sets/public endpoint (query title/code/phrase)
+	•	Tests: backend Vitest for public search; frontend Vitest for board sizing/priority handling
