@@ -1,0 +1,37 @@
+import type { PhraseSet } from '../types'
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
+export async function createPhraseSet(input: { title: string; phrases: string[] }): Promise<PhraseSet> {
+  const response = await fetch(`${API_BASE}/phrase-sets`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to create phrase set')
+  }
+
+  return response.json()
+}
+
+export async function fetchPhraseSet(code: string): Promise<PhraseSet> {
+  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}`)
+
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Phrase set not found')
+  }
+
+  return response.json()
+}
+
+async function safeError(response: Response): Promise<string | null> {
+  try {
+    const data = await response.json()
+    if (typeof data?.error === 'string') return data.error
+  } catch {
+    // ignore parse errors
+  }
+  return null
+}

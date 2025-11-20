@@ -250,3 +250,16 @@ Notes / next backend steps
 	•	Add persistence (file or DB) if needed
 	•	Add validation library (Zod) for richer errors
 	•	Add rate limiting if exposed publicly
+
+9. Frontend scaffold (Vite + React + TanStack Router + Tailwind)
+	•	Location: front/
+	•	Stacks: React + TypeScript, TanStack Router, React Query, Tailwind
+	•	Routes:
+		•	/ (Home splash)
+		•	/create (POST to /phrase-sets)
+		•	/join (enter code → navigate)
+		•	/game/:code (fetch phrase set → board + toggles)
+	•	Utilities:
+		•	src/lib/api.ts hits the local API (default http://localhost:3000 or VITE_API_URL)
+		•	src/lib/bingo.ts generates/toggles boards with FREE center
+	•	Run it: cd front && npm install && npm run dev (vite) or npm run build
