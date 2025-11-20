@@ -6,7 +6,7 @@ import type { PhraseSet } from '../types'
 export function CreatePage() {
   const [title, setTitle] = useState('VC Bingo')
   const [genre, setGenre] = useState('Christmas party')
-  const [isPublic, setIsPublic] = useState(false)
+  const [isPublic, setIsPublic] = useState(true)
   const [freeSpace, setFreeSpace] = useState(true)
   const [phrasesText, setPhrasesText] = useState(
     ['AI-powered', 'Runway', 'Synergy', 'Pivot', 'We are different', 'Let me circle back', 'Can we park this?'].join(

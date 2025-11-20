@@ -10,10 +10,10 @@ export function JoinPage() {
   const [search, setSearch] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
 
-  const { data: publicSets, isFetching } = useQuery({
+  const { data: publicSets, isFetching, refetch } = useQuery({
     queryKey: ['public-phrase-sets', submittedQuery],
     queryFn: () => fetchPublicPhraseSets(submittedQuery),
-    enabled: submittedQuery.trim().length > 0,
+    enabled: true,
   })
 
   function handleSubmit(event: React.FormEvent) {
@@ -26,6 +26,7 @@ export function JoinPage() {
   function handleSearch(event: React.FormEvent) {
     event.preventDefault()
     setSubmittedQuery(search.trim())
+    refetch()
   }
 
   return (
