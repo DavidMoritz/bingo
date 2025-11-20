@@ -12,6 +12,7 @@ export function GamePage({ phraseSet }: GamePageProps) {
   const [board, setBoard] = useState<BingoBoard>(() => createBingoBoard(phraseSet, phraseSet.freeSpace))
   const [currentSet, setCurrentSet] = useState<PhraseSet>(phraseSet)
   const [myRating, setMyRating] = useState<number | null>(null)
+  const [hasRated, setHasRated] = useState(false)
 
   const selectedCount = useMemo(() => board.cells.filter((c) => c.selected).length, [board])
 
@@ -27,7 +28,7 @@ export function GamePage({ phraseSet }: GamePageProps) {
     mutationFn: (rating: number) => ratePhraseSet(currentSet.code, rating),
     onSuccess: (updated) => {
       setCurrentSet(updated)
-      setBoard(createBingoBoard(updated, updated.freeSpace))
+      setHasRated(true)
     },
   })
 
@@ -47,7 +48,18 @@ export function GamePage({ phraseSet }: GamePageProps) {
             {phraseSet.phrases.length} phrases · {selectedCount} selected
           </p>
           <div className="mt-2 flex items-center gap-3 text-sm text-slate-200">
-            <StarRating value={currentSet.ratingAverage} onRate={submitRating} userValue={myRating} />
+            {hasRated ? (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-teal-200">
+                Thank you for your feedback!
+              </span>
+            ) : (
+              <StarRating
+                value={currentSet.ratingAverage}
+                onRate={submitRating}
+                userValue={myRating}
+                disabled={ratingMutation.isPending}
+              />
+            )}
             <span className="text-xs text-slate-400">
               {currentSet.ratingAverage.toFixed(2)} ({currentSet.ratingCount} ratings)
             </span>
@@ -107,9 +119,10 @@ type StarRatingProps = {
   value: number
   userValue: number | null
   onRate: (value: number) => void
+  disabled?: boolean
 }
 
-function StarRating({ value, userValue, onRate }: StarRatingProps) {
+function StarRating({ value, userValue, onRate, disabled }: StarRatingProps) {
   const rounded = Math.round(value * 2) / 2
 
   return (
@@ -122,9 +135,10 @@ function StarRating({ value, userValue, onRate }: StarRatingProps) {
             key={starValue}
             type="button"
             onClick={() => onRate(starValue)}
+            disabled={disabled}
             className={`h-6 w-6 rounded-full text-lg transition hover:scale-110 ${
               active || userValue === starValue ? 'text-amber-300' : 'text-slate-500'
-            }`}
+            } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
             aria-label={`Rate ${starValue} star${starValue === 1 ? '' : 's'}`}
           >
             ★

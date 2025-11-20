@@ -280,4 +280,5 @@ Notes / next backend steps
 	•	PhraseSet now stores isPublic and freeSpace flags; create form exposes toggles (free space defaults on)
 	•	Suggest button: if user edited phrases, suggestions only append new lines until reaching 30 total
 	•	Ratings: players can rate 1–5 stars; public search shows ratings and sorts higher scores first
+	•	After rating, stars are replaced inline with a “Thank you” chip (no board refresh)
 	•	Join screen: search public boards via new /phrase-sets/public endpoint (query title/code/phrase)
