@@ -43,7 +43,7 @@ export function HomePage() {
                 key={idx}
                 className="rounded-lg border border-white/10 bg-white/5 px-2 py-3 text-xs uppercase tracking-wide text-white/80"
               >
-                {idx === 12 ? 'FREE' : 'Phrase'}
+                {idx === 12 ? '☆' : '★'}
               </div>
             ))}
           </div>

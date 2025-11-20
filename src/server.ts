@@ -25,6 +25,10 @@ type PhraseSuggestionResponse = {
   phrases: string[]
 }
 
+type PublicPhraseSetResponse = {
+  items: PhraseSet[]
+}
+
 const app = express()
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
 
@@ -81,6 +85,22 @@ app.get('/phrase-sets/:code', (req, res) => {
   }
 
   res.json(phraseSet)
+})
+
+app.get('/phrase-sets/public', (req, res) => {
+  const query = String(req.query.q ?? '').trim().toLowerCase()
+  const items = Array.from(phraseSets.values())
+    .filter((set) => set.isPublic)
+    .filter((set) => {
+      if (!query) return true
+      const haystack = `${set.title} ${set.code} ${set.phrases.join(' ')}`.toLowerCase()
+      return haystack.includes(query)
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 30)
+
+  const response: PublicPhraseSetResponse = { items }
+  res.json(response)
 })
 
 app.use(notFoundMiddleware)

@@ -31,6 +31,22 @@ export async function fetchPhraseSet(code: string): Promise<PhraseSet> {
   return response.json()
 }
 
+export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]> {
+  const url = new URL(`${API_BASE}/phrase-sets/public`)
+  if (query.trim()) {
+    url.searchParams.set('q', query.trim())
+  }
+
+  const response = await fetch(url.toString())
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to load public phrase sets')
+  }
+
+  const data = (await response.json()) as { items?: PhraseSet[] }
+  if (!Array.isArray(data.items)) return []
+  return data.items
+}
+
 export async function suggestPhrases(genre: string): Promise<string[]> {
   const response = await fetch(`${API_BASE}/phrase-suggestions`, {
     method: 'POST',

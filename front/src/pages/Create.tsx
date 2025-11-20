@@ -15,6 +15,7 @@ export function CreatePage() {
   )
   const [result, setResult] = useState<PhraseSet | null>(null)
   const [showPhraseHelp, setShowPhraseHelp] = useState(false)
+  const [isPhraseDirty, setIsPhraseDirty] = useState(false)
 
   const mutation = useMutation({
     mutationFn: (input: { title: string; phrases: string[]; isPublic: boolean; freeSpace: boolean }) =>
@@ -24,7 +25,15 @@ export function CreatePage() {
 
   const suggestMutation = useMutation({
     mutationFn: (input: { genre: string }) => suggestPhrases(input.genre),
-    onSuccess: (phrases) => setPhrasesText(phrases.join('\n')),
+    onSuccess: (phrases) => {
+      if (isPhraseDirty) {
+        const existing = parseLines(phrasesText)
+        const merged = mergeSuggestions(existing, phrases, 30)
+        setPhrasesText(merged.join('\n'))
+      } else {
+        setPhrasesText(phrases.join('\n'))
+      }
+    },
   })
 
   const phrases = phrasesText
@@ -59,6 +68,28 @@ export function CreatePage() {
     } catch {
       // handled by mutation.error
     }
+  }
+
+  function parseLines(text: string): string[] {
+    return text
+      .split('\n')
+      .map((phrase) => phrase.trim())
+      .filter(Boolean)
+  }
+
+  function mergeSuggestions(existing: string[], suggestions: string[], limit: number): string[] {
+    const seen = new Set(existing.map((p) => p.toLowerCase()))
+    const combined = [...existing]
+
+    for (const suggestion of suggestions) {
+      const key = suggestion.toLowerCase()
+      if (seen.has(key)) continue
+      combined.push(suggestion)
+      seen.add(key)
+      if (combined.length >= limit) break
+    }
+
+    return combined.slice(0, limit)
   }
 
   return (
@@ -99,7 +130,9 @@ export function CreatePage() {
             {suggestMutation.error ? (
               <p className="text-xs text-rose-300">{(suggestMutation.error as Error).message}</p>
             ) : (
-              <p className="text-xs text-slate-400">We’ll auto-fill about 24–30 phrases based on your genre.</p>
+              <p className="text-xs text-slate-400">
+                We’ll auto-fill about 24–30 phrases. If you’ve typed your own, we’ll only add until you hit 30.
+              </p>
             )}
           </div>
         </form>
@@ -137,7 +170,10 @@ export function CreatePage() {
               id="phrases"
               className="min-h-[200px] w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white shadow-inner shadow-black/40 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50"
               value={phrasesText}
-              onChange={(e) => setPhrasesText(e.target.value)}
+              onChange={(e) => {
+                setIsPhraseDirty(true)
+                setPhrasesText(e.target.value)
+              }}
               placeholder="Each line becomes a cell"
             />
             <p className="text-xs text-slate-400">

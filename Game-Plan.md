@@ -278,3 +278,5 @@ Notes / next backend steps
 	•	Phrases field now has a help modal explaining one-per-line, pipes, and priorities
 	•	Priority phrases are also shuffled before filling the grid (no fixed order)
 	•	PhraseSet now stores isPublic and freeSpace flags; create form exposes toggles (free space defaults on)
+	•	Suggest button: if user edited phrases, suggestions only append new lines until reaching 30 total
+	•	Join screen: search public boards via new /phrase-sets/public endpoint (query title/code/phrase)
