@@ -270,3 +270,6 @@ Notes / next backend steps
 	•	Create page: “Suggest phrases” button fills the textarea from the genre/vibe field
 	•	Templates auto-loaded from src/suggestions/*.json (fallback prefixes/nouns embedded in server)
 	•	Added templates: beach, mountains/ski, amusement park, zoo, big city, 4th of July, parade
+	•	If a template + fallbacks produce <30 entries, the server pads with more fallback combos to hit 30
+	•	Fallback combos are shuffled each generation for varied results on repeated requests
+	•	Fallback pools expanded (more prefixes + nouns) to increase variety

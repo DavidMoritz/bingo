@@ -193,6 +193,16 @@ const FALLBACK_NOUNS = [
   'cheer moment',
   'unexpected cameo',
   'shout-out',
+  'side quest',
+  'channel check',
+  'group hug',
+  'mic drop',
+  'energy boost',
+  'inside reference',
+  'photo bomb',
+  'happy accident',
+  'bonus round',
+  'victory lap',
 ]
 
 const FALLBACK_PREFIXES = [
@@ -206,6 +216,21 @@ const FALLBACK_PREFIXES = [
   'crowd-favorite',
   'last-minute',
   'surprise',
+  'serendipitous',
+  'off-script',
+  'unrehearsed',
+  'spur-of-the-moment',
+  'blink-and-miss',
+  'camera-ready',
+  'playlist-worthy',
+  'memeable',
+  'overheard',
+  'chaotic-good',
+  'viral-ready',
+  'unscripted',
+  'backstage',
+  'legend-in-the-making',
+  'righteous',
 ]
 
 function generatePhraseSuggestions(rawGenre: string): string[] {
@@ -216,16 +241,14 @@ function generatePhraseSuggestions(rawGenre: string): string[] {
 
   const base = template ? template.phrases : []
   const blended = base.concat(generateFallbackPhrases(normalized))
-  const unique = Array.from(new Set(blended)).slice(0, 30)
-
-  return unique
+  return ensureMinimumPhrases(blended, normalized, 30)
 }
 
 function generateFallbackPhrases(normalizedGenre: string): string[] {
   const combined: string[] = []
 
   for (let i = 0; i < FALLBACK_NOUNS.length; i++) {
-    const prefix = FALLBACK_PREFIXES[i % FALLBACK_PREFIXES.length]
+    const prefix = shuffle(FALLBACK_PREFIXES)[i % FALLBACK_PREFIXES.length]
     const noun = FALLBACK_NOUNS[i]
     combined.push(`${prefix} ${noun}`)
   }
@@ -237,7 +260,59 @@ function generateFallbackPhrases(normalizedGenre: string): string[] {
     combined.push(`${normalizedGenre} inside joke`)
   }
 
-  return combined
+  return shuffle(combined)
+}
+
+function ensureMinimumPhrases(seed: string[], normalizedGenre: string, minimum: number): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const phrase of seed) {
+    if (!phrase || seen.has(phrase)) continue
+    seen.add(phrase)
+    result.push(phrase)
+    if (result.length >= minimum) return result.slice(0, minimum)
+  }
+
+  const fillers = buildFallbackCombos(normalizedGenre)
+  for (const phrase of fillers) {
+    if (seen.has(phrase)) continue
+    seen.add(phrase)
+    result.push(phrase)
+    if (result.length >= minimum) break
+  }
+
+  return result.slice(0, minimum)
+}
+
+function buildFallbackCombos(normalizedGenre: string): string[] {
+  const combos: string[] = []
+  const prefixes = shuffle([...FALLBACK_PREFIXES])
+  const nouns = shuffle([...FALLBACK_NOUNS])
+
+  for (const prefix of prefixes) {
+    for (const noun of nouns) {
+      combos.push(`${prefix} ${noun}`)
+    }
+  }
+
+  if (normalizedGenre) {
+    combos.push(`${normalizedGenre} story`)
+    combos.push(`${normalizedGenre} cameo`)
+    combos.push(`${normalizedGenre} tradition`)
+    combos.push(`${normalizedGenre} remix`)
+  }
+
+  return shuffle(combos)
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
 }
 
 function loadSuggestionTemplates(): SuggestionTemplate[] {
