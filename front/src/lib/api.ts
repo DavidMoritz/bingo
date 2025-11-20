@@ -26,6 +26,25 @@ export async function fetchPhraseSet(code: string): Promise<PhraseSet> {
   return response.json()
 }
 
+export async function suggestPhrases(genre: string): Promise<string[]> {
+  const response = await fetch(`${API_BASE}/phrase-suggestions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ genre }),
+  })
+
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to suggest phrases')
+  }
+
+  const data = (await response.json()) as { phrases?: string[] }
+  if (!data.phrases || !Array.isArray(data.phrases)) {
+    throw new Error('Unexpected suggestion response')
+  }
+
+  return data.phrases
+}
+
 async function safeError(response: Response): Promise<string | null> {
   try {
     const data = await response.json()

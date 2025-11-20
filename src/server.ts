@@ -1,6 +1,8 @@
 import cors from 'cors'
 import express, { NextFunction, Request, Response } from 'express'
 import crypto from 'crypto'
+import fs from 'fs'
+import path from 'path'
 
 type PhraseSet = {
   code: string
@@ -11,6 +13,11 @@ type PhraseSet = {
 
 type PhraseSetInput = {
   title: string
+  phrases: string[]
+}
+
+type PhraseSuggestionResponse = {
+  genre: string
   phrases: string[]
 }
 
@@ -42,6 +49,18 @@ app.post('/phrase-sets', (req, res, next) => {
     phraseSets.set(code, phraseSet)
 
     res.status(201).json(phraseSet)
+  } catch (err) {
+    next(err)
+  }
+})
+
+app.post('/phrase-suggestions', (req, res, next) => {
+  try {
+    const genre = parseGenreInput(req.body)
+    const phrases = generatePhraseSuggestions(genre)
+    const response: PhraseSuggestionResponse = { genre, phrases }
+
+    res.json(response)
   } catch (err) {
     next(err)
   }
@@ -94,6 +113,20 @@ function parsePhraseSetInput(body: unknown): PhraseSetInput {
   }
 }
 
+function parseGenreInput(body: unknown): string {
+  if (typeof body !== 'object' || body === null) {
+    throw badRequest('Body must be an object')
+  }
+
+  const { genre } = body as Record<string, unknown>
+
+  if (typeof genre !== 'string' || !genre.trim()) {
+    throw badRequest('genre must be a non-empty string')
+  }
+
+  return genre.trim()
+}
+
 function createUniqueCode(): string {
   let code = ''
 
@@ -130,4 +163,96 @@ function errorMiddleware(
 ) {
   const status = err.status && err.status >= 400 ? err.status : 500
   res.status(status).json({ error: err.message || 'Unexpected error' })
+}
+
+type SuggestionTemplate = {
+  keywords: string[]
+  phrases: string[]
+}
+
+const SUGGESTION_TEMPLATES: SuggestionTemplate[] = loadSuggestionTemplates()
+
+const FALLBACK_NOUNS = [
+  'brainstorm',
+  'coffee run',
+  'surprise moment',
+  'inside joke',
+  'photo op',
+  'group selfie',
+  'awkward pause',
+  'celebration cheer',
+  'playlist swap',
+  'dance break',
+  'story time',
+  'confetti toss',
+  'snack break',
+  'new idea',
+  'high five',
+  'laughter burst',
+  'quick poll',
+  'cheer moment',
+  'unexpected cameo',
+  'shout-out',
+]
+
+const FALLBACK_PREFIXES = [
+  'impromptu',
+  'unexpected',
+  'classic',
+  'legendary',
+  'unplanned',
+  'hilarious',
+  'wholesome',
+  'crowd-favorite',
+  'last-minute',
+  'surprise',
+]
+
+function generatePhraseSuggestions(rawGenre: string): string[] {
+  const normalized = rawGenre.toLowerCase()
+  const template = SUGGESTION_TEMPLATES.find((t) =>
+    t.keywords.some((keyword) => normalized.includes(keyword))
+  )
+
+  const base = template ? template.phrases : []
+  const blended = base.concat(generateFallbackPhrases(normalized))
+  const unique = Array.from(new Set(blended)).slice(0, 30)
+
+  return unique
+}
+
+function generateFallbackPhrases(normalizedGenre: string): string[] {
+  const combined: string[] = []
+
+  for (let i = 0; i < FALLBACK_NOUNS.length; i++) {
+    const prefix = FALLBACK_PREFIXES[i % FALLBACK_PREFIXES.length]
+    const noun = FALLBACK_NOUNS[i]
+    combined.push(`${prefix} ${noun}`)
+  }
+
+  // sprinkle genre keyword variants to keep it on-theme
+  if (normalizedGenre) {
+    combined.push(`${normalizedGenre} highlight`)
+    combined.push(`${normalizedGenre} mishap`)
+    combined.push(`${normalizedGenre} inside joke`)
+  }
+
+  return combined
+}
+
+function loadSuggestionTemplates(): SuggestionTemplate[] {
+  const suggestionsDir = path.resolve(process.cwd(), 'src', 'suggestions')
+  if (!fs.existsSync(suggestionsDir)) {
+    return []
+  }
+
+  return fs
+    .readdirSync(suggestionsDir)
+    .filter((file) => file.endsWith('.json') && file !== 'fallback.json')
+    .map((file) => {
+      const fullPath = path.join(suggestionsDir, file)
+      const data = JSON.parse(fs.readFileSync(fullPath, 'utf8')) as SuggestionTemplate
+      return data
+    })
+    .filter((template) => Array.isArray(template.keywords) && Array.isArray(template.phrases))
 }

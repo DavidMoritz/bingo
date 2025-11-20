@@ -1,10 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { createPhraseSet } from '../lib/api'
+import { createPhraseSet, suggestPhrases } from '../lib/api'
 import type { PhraseSet } from '../types'
 
 export function CreatePage() {
   const [title, setTitle] = useState('VC Bingo')
+  const [genre, setGenre] = useState('Christmas party')
   const [phrasesText, setPhrasesText] = useState(
     ['AI-powered', 'Runway', 'Synergy', 'Pivot', 'We are different', 'Let me circle back', 'Can we park this?'].join(
       '\n'
@@ -15,6 +16,11 @@ export function CreatePage() {
   const mutation = useMutation({
     mutationFn: (input: { title: string; phrases: string[] }) => createPhraseSet(input),
     onSuccess: (data) => setResult(data),
+  })
+
+  const suggestMutation = useMutation({
+    mutationFn: (input: { genre: string }) => suggestPhrases(input.genre),
+    onSuccess: (phrases) => setPhrasesText(phrases.join('\n')),
   })
 
   const phrases = phrasesText
@@ -39,6 +45,18 @@ export function CreatePage() {
     }
   }
 
+  async function handleSuggest(event: React.FormEvent) {
+    event.preventDefault()
+    suggestMutation.reset()
+
+    if (!genre.trim()) return
+    try {
+      await suggestMutation.mutateAsync({ genre: genre.trim() })
+    } catch {
+      // handled by mutation.error
+    }
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/30">
@@ -52,6 +70,35 @@ export function CreatePage() {
             POST /phrase-sets
           </span>
         </header>
+
+        <form onSubmit={handleSuggest} className="mb-4 space-y-3">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-200" htmlFor="genre">
+              Genre or vibe (AI suggestions)
+            </label>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                id="genre"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white shadow-inner shadow-black/40 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50 sm:max-w-sm"
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                placeholder="Christmas party, startup pitch, office meeting…"
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={suggestMutation.isPending}
+              >
+                {suggestMutation.isPending ? 'Generating…' : 'Suggest phrases'}
+              </button>
+            </div>
+            {suggestMutation.error ? (
+              <p className="text-xs text-rose-300">{(suggestMutation.error as Error).message}</p>
+            ) : (
+              <p className="text-xs text-slate-400">We’ll auto-fill about 24–30 phrases based on your genre.</p>
+            )}
+          </div>
+        </form>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">

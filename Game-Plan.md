@@ -263,3 +263,9 @@ Notes / next backend steps
 		•	src/lib/api.ts hits the local API (default http://localhost:3000 or VITE_API_URL)
 		•	src/lib/bingo.ts generates/toggles boards with FREE center
 	•	Run it: cd front && npm install && npm run dev (vite) or npm run build
+
+10. AI-ish phrase suggestions (new)
+	•	Endpoint: POST /phrase-suggestions with { genre }
+	•	Server creates themed suggestions via templates + fallback; returns up to 30 phrases
+	•	Create page: “Suggest phrases” button fills the textarea from the genre/vibe field
+	•	Templates auto-loaded from src/suggestions/*.json (fallback prefixes/nouns embedded in server)
