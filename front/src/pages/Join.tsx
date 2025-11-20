@@ -96,6 +96,10 @@ export function JoinPage() {
                 <span>{set.phrases.length} phrases</span>
                 <span>•</span>
                 <span>{new Date(set.createdAt).toLocaleDateString()}</span>
+                <span>•</span>
+                <span className="text-amber-300">
+                  ★ {set.ratingAverage?.toFixed(1) ?? '0.0'} ({set.ratingCount ?? 0})
+                </span>
               </div>
             </button>
           ))}

@@ -47,6 +47,20 @@ export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]>
   return data.items
 }
 
+export async function ratePhraseSet(code: string, rating: number): Promise<PhraseSet> {
+  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}/rate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rating }),
+  })
+
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to submit rating')
+  }
+
+  return response.json()
+}
+
 export async function suggestPhrases(genre: string): Promise<string[]> {
   const response = await fetch(`${API_BASE}/phrase-suggestions`, {
     method: 'POST',

@@ -5,6 +5,9 @@ export type PhraseSet = {
   createdAt: string
   isPublic: boolean
   freeSpace: boolean
+  ratingTotal: number
+  ratingCount: number
+  ratingAverage: number
 }
 
 export type BingoCell = {

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { createBingoBoard, toggleCell } from '../lib/bingo'
+import { ratePhraseSet } from '../lib/api'
 import type { BingoBoard, PhraseSet } from '../types'
 
 type GamePageProps = {
@@ -8,6 +10,8 @@ type GamePageProps = {
 
 export function GamePage({ phraseSet }: GamePageProps) {
   const [board, setBoard] = useState<BingoBoard>(() => createBingoBoard(phraseSet, phraseSet.freeSpace))
+  const [currentSet, setCurrentSet] = useState<PhraseSet>(phraseSet)
+  const [myRating, setMyRating] = useState<number | null>(null)
 
   const selectedCount = useMemo(() => board.cells.filter((c) => c.selected).length, [board])
 
@@ -16,7 +20,20 @@ export function GamePage({ phraseSet }: GamePageProps) {
   }
 
   function reshuffle() {
-    setBoard(createBingoBoard(phraseSet, phraseSet.freeSpace))
+    setBoard(createBingoBoard(currentSet, currentSet.freeSpace))
+  }
+
+  const ratingMutation = useMutation({
+    mutationFn: (rating: number) => ratePhraseSet(currentSet.code, rating),
+    onSuccess: (updated) => {
+      setCurrentSet(updated)
+      setBoard(createBingoBoard(updated, updated.freeSpace))
+    },
+  })
+
+  function submitRating(value: number) {
+    setMyRating(value)
+    ratingMutation.mutate(value)
   }
 
   return (
@@ -29,6 +46,17 @@ export function GamePage({ phraseSet }: GamePageProps) {
             Code <span className="font-mono text-white">{phraseSet.code}</span> ·{' '}
             {phraseSet.phrases.length} phrases · {selectedCount} selected
           </p>
+          <div className="mt-2 flex items-center gap-3 text-sm text-slate-200">
+            <StarRating value={currentSet.ratingAverage} onRate={submitRating} userValue={myRating} />
+            <span className="text-xs text-slate-400">
+              {currentSet.ratingAverage.toFixed(2)} ({currentSet.ratingCount} ratings)
+            </span>
+            {ratingMutation.isPending ? (
+              <span className="text-xs text-slate-400">Submitting…</span>
+            ) : ratingMutation.error ? (
+              <span className="text-xs text-rose-300">Rating failed</span>
+            ) : null}
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -74,3 +102,35 @@ export function GamePage({ phraseSet }: GamePageProps) {
 }
 
 export default GamePage
+
+type StarRatingProps = {
+  value: number
+  userValue: number | null
+  onRate: (value: number) => void
+}
+
+function StarRating({ value, userValue, onRate }: StarRatingProps) {
+  const rounded = Math.round(value * 2) / 2
+
+  return (
+    <div className="flex items-center gap-1 text-amber-300">
+      {Array.from({ length: 5 }).map((_, idx) => {
+        const starValue = idx + 1
+        const active = rounded >= starValue
+        return (
+          <button
+            key={starValue}
+            type="button"
+            onClick={() => onRate(starValue)}
+            className={`h-6 w-6 rounded-full text-lg transition hover:scale-110 ${
+              active || userValue === starValue ? 'text-amber-300' : 'text-slate-500'
+            }`}
+            aria-label={`Rate ${starValue} star${starValue === 1 ? '' : 's'}`}
+          >
+            ★
+          </button>
+        )
+      })}
+    </div>
+  )
+}

@@ -11,6 +11,9 @@ type PhraseSet = {
   createdAt: string
   isPublic: boolean
   freeSpace: boolean
+  ratingTotal: number
+  ratingCount: number
+  ratingAverage: number
 }
 
 type PhraseSetInput = {
@@ -18,6 +21,9 @@ type PhraseSetInput = {
   phrases: string[]
   isPublic: boolean
   freeSpace: boolean
+  ratingTotal: number
+  ratingCount: number
+  ratingAverage: number
 }
 
 type PhraseSuggestionResponse = {
@@ -54,6 +60,9 @@ app.post('/phrase-sets', (req, res, next) => {
       createdAt: new Date().toISOString(),
       isPublic,
       freeSpace,
+      ratingTotal: 0,
+      ratingCount: 0,
+      ratingAverage: 0,
     }
 
     phraseSets.set(code, phraseSet)
@@ -87,6 +96,27 @@ app.get('/phrase-sets/:code', (req, res) => {
   res.json(phraseSet)
 })
 
+app.post('/phrase-sets/:code/rate', (req, res) => {
+  const code = String(req.params.code || '').toUpperCase()
+  const phraseSet = phraseSets.get(code)
+
+  if (!phraseSet) {
+    return res.status(404).json({ error: 'Phrase set not found' })
+  }
+
+  const rating = Number((req.body as { rating?: unknown })?.rating)
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be between 1 and 5' })
+  }
+
+  phraseSet.ratingTotal += rating
+  phraseSet.ratingCount += 1
+  phraseSet.ratingAverage = Number((phraseSet.ratingTotal / phraseSet.ratingCount).toFixed(2))
+  phraseSets.set(code, phraseSet)
+
+  res.json(phraseSet)
+})
+
 app.get('/phrase-sets/public', (req, res) => {
   const query = String(req.query.q ?? '').trim().toLowerCase()
   const items = Array.from(phraseSets.values())
@@ -96,7 +126,12 @@ app.get('/phrase-sets/public', (req, res) => {
       const haystack = `${set.title} ${set.code} ${set.phrases.join(' ')}`.toLowerCase()
       return haystack.includes(query)
     })
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .sort((a, b) => {
+      const aScore = a.ratingAverage || 0
+      const bScore = b.ratingAverage || 0
+      if (bScore !== aScore) return bScore - aScore
+      return b.createdAt.localeCompare(a.createdAt)
+    })
     .slice(0, 30)
 
   const response: PublicPhraseSetResponse = { items }
@@ -138,6 +173,9 @@ function parsePhraseSetInput(body: unknown): PhraseSetInput {
     phrases: sanitizedPhrases,
     isPublic: Boolean(isPublic),
     freeSpace: freeSpace === false ? false : true,
+    ratingTotal: 0,
+    ratingCount: 0,
+    ratingAverage: 0,
   }
 }
 
