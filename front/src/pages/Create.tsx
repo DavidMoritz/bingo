@@ -12,6 +12,7 @@ export function CreatePage() {
     )
   )
   const [result, setResult] = useState<PhraseSet | null>(null)
+  const [showPhraseHelp, setShowPhraseHelp] = useState(false)
 
   const mutation = useMutation({
     mutationFn: (input: { title: string; phrases: string[] }) => createPhraseSet(input),
@@ -116,9 +117,19 @@ export function CreatePage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-200" htmlFor="phrases">
-              Phrases (one per line)
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-200" htmlFor="phrases">
+                Phrases
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPhraseHelp(true)}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-xs font-semibold text-white/90 transition hover:border-white/40 hover:bg-white/10"
+                aria-label="Phrase input help"
+              >
+                ?
+              </button>
+            </div>
             <textarea
               id="phrases"
               className="min-h-[200px] w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white shadow-inner shadow-black/40 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50"
@@ -160,6 +171,45 @@ export function CreatePage() {
           </div>
         ) : null}
       </aside>
+
+      {showPhraseHelp ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur">
+          <div className="w-full max-w-lg rounded-3xl border border-white/15 bg-slate-950/90 p-6 shadow-2xl shadow-black/50">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Phrases</p>
+                <h3 className="text-2xl font-bold text-white">Formatting tips</h3>
+              </div>
+              <button
+                onClick={() => setShowPhraseHelp(false)}
+                className="rounded-full border border-white/15 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/10"
+                aria-label="Close phrase help"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-4 space-y-3 text-sm text-slate-200">
+              <p>Each line becomes one candidate phrase for the board.</p>
+              <ul className="space-y-2">
+                <li>
+                  <span className="font-semibold text-white">One per line:</span> Write phrases on separate lines.
+                </li>
+                <li>
+                  <span className="font-semibold text-white">OR options:</span> Use a pipe <code className="rounded bg-slate-800 px-1 py-0.5">|</code>{' '}
+                  to randomize one choice, e.g. <code className="rounded bg-slate-800 px-1 py-0.5">Snow cone | Churro</code>.
+                </li>
+                <li>
+                  <span className="font-semibold text-white">Priority:</span> Start a line with an asterisk to force it onto the board, e.g.{' '}
+                  <code className="rounded bg-slate-800 px-1 py-0.5">*Front row seats</code>.
+                </li>
+                <li>
+                  Center is FREE, so aim for at least 24 phrases to fill the grid.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

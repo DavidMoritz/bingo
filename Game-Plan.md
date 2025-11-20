@@ -273,3 +273,7 @@ Notes / next backend steps
 	•	If a template + fallbacks produce <30 entries, the server pads with more fallback combos to hit 30
 	•	Fallback combos are shuffled each generation for varied results on repeated requests
 	•	Fallback pools expanded (more prefixes + nouns) to increase variety
+	•	Phrase input supports OR via “A | B”: board generation randomly picks one option per entry
+	•	Phrases starting with “*” are treated as priority and included first on the board
+	•	Phrases field now has a help modal explaining one-per-line, pipes, and priorities
+	•	Priority phrases are also shuffled before filling the grid (no fixed order)
