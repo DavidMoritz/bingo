@@ -64,6 +64,18 @@ export async function updatePhraseSet(
   return response.json()
 }
 
+export async function orphanPhraseSet(code: string, ownerProfileId: string): Promise<PhraseSet> {
+  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}/orphan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerProfileId }),
+  })
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to remove from profile')
+  }
+  return response.json()
+}
+
 export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]> {
   const url = new URL(`${API_BASE}/phrase-sets/public`)
   if (query.trim()) {

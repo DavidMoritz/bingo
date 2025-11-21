@@ -134,6 +134,22 @@ export function buildApp() {
     res.json(updated)
   })
 
+  app.post('/phrase-sets/:code/orphan', (req, res) => {
+    const code = String(req.params.code || '').toUpperCase()
+    const existing = phraseSets.get(code)
+    if (!existing) {
+      return res.status(404).json({ error: 'Phrase set not found' })
+    }
+    const body = req.body as { ownerProfileId?: unknown }
+    const requester = typeof body?.ownerProfileId === 'string' ? body.ownerProfileId : ''
+    if (existing.ownerProfileId && requester && existing.ownerProfileId !== requester) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+    existing.ownerProfileId = 'guest'
+    phraseSets.set(code, existing)
+    res.json(existing)
+  })
+
   app.post('/phrase-sets/:code/rate', (req, res) => {
     const code = String(req.params.code || '').toUpperCase()
     const phraseSet = phraseSets.get(code)

@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useEffect, useState } from 'react'
-import { fetchMyPhraseSets, updatePhraseSet } from '../lib/api'
+import { fetchMyPhraseSets, orphanPhraseSet, updatePhraseSet } from '../lib/api'
 import type { PhraseSet } from '../types'
 
 export function ProfilePage() {
@@ -49,6 +49,14 @@ export function ProfilePage() {
         freeSpace,
         ownerProfileId,
       }),
+    onSuccess: () => {
+      setEditing(null)
+      refetch()
+    },
+  })
+
+  const orphanMutation = useMutation({
+    mutationFn: (code: string) => orphanPhraseSet(code, ownerProfileId),
     onSuccess: () => {
       setEditing(null)
       refetch()
@@ -177,8 +185,19 @@ export function ProfilePage() {
               >
                 Cancel
               </button>
+              <button
+                type="button"
+                className="text-xs text-rose-300 underline"
+                onClick={() => orphanMutation.mutate(editing.code)}
+                disabled={orphanMutation.isPending}
+              >
+                {orphanMutation.isPending ? 'Removing…' : 'Remove from profile'}
+              </button>
               {updateMutation.error ? (
                 <span className="text-xs text-rose-300">{(updateMutation.error as Error).message}</span>
+              ) : null}
+              {orphanMutation.error ? (
+                <span className="text-xs text-rose-300">{(orphanMutation.error as Error).message}</span>
               ) : null}
             </div>
           </form>
