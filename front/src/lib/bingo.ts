@@ -16,14 +16,14 @@ export function createBingoBoard(phraseSet: PhraseSet, useFreeCenter = true): Bi
     .filter((p) => !p.priority)
     .map((p) => p.text)
 
-  const pool = [...shuffle(priorityPhrases), ...shuffle(regularPhrases)]
+  const pool = [...priorityPhrases, ...regularPhrases]
   const unique = Array.from(new Set(pool))
 
   while (unique.length < cellsNeeded) {
     unique.push('')
   }
 
-  const selectedPhrases = unique.slice(0, cellsNeeded)
+  const selectedPhrases = shuffle(unique.slice(0, cellsNeeded))
 
   const cells: BingoCell[] = []
   let phraseIndex = 0

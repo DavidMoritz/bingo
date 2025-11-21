@@ -1,7 +1,7 @@
 # Bingo App Architecture Guide
 
 ## Overview
-- **Backend**: Node + Express (TypeScript). In-memory storage for phrase sets, suggestion generation, ratings, and health checks.
+- **Backend**: Node + Express (TypeScript). In-memory storage for phrase sets, suggestion generation, ratings, and health checks. (If I were distributing this, I would likely use Amplify. The data would be in Dynamo DB and the API running in Lambda using GraphQL)
 - **Frontend**: Vite + React + TypeScript with TanStack Router, React Query, and Tailwind CSS.
 - **Build/Dev**: Vite powers fast dev server and optimized builds; `npm run dev` for each side, `npm run build` for production bundles.
 
@@ -32,10 +32,10 @@
 
 ## Frontend Features
 - **Create flow (`front/src/pages/Create.tsx`)**:
+  - AI Suggestion button: if the user edited phrases, it appends unique suggestions until 30; otherwise replaces with ~24–30 suggested phrases.
   - Title input, genre-to-suggestions helper, and phrases textarea.
   - Formatting help modal explains: one-per-line, `A | B` OR syntax (one chosen randomly), priority via `*` prefix, and center FREE note.
   - Toggles: `Public` (discoverable, default on) and `Free space` (center FREE cell on/off, only matters for 5×5).
-  - Suggestion button: if the user edited phrases, it appends unique suggestions until 30; otherwise replaces with ~24–30 suggested phrases.
   - Submits to `POST /phrase-sets`; displays returned code and metadata.
 - **Join flow (`front/src/pages/Join.tsx`)**:
   - Direct code entry navigates to `/game/{code}`.
@@ -68,3 +68,21 @@
 - **Persistence**: Backend is in-memory; restarting wipes data and ratings. Swap `Map` for a DB/file to persist.
 - **Auth**: None—public demo only. Ratings are unauthenticated.
 - **Templates**: Add/remove JSON under `src/suggestions/` to extend AI-ish suggestions (auto-discovered).
+
+## Additional Questions:
+
+- "What does success look like to you?"
+  - Gets them talking specifics, not corporate waffle.
+
+- "What would make you think 'thank God we hired David' in six months' time?"
+  - This is my favourite. It cuts through the fluff and gets to what really matters.
+
+- "How would I fit into the bigger picture of where the company's heading?"
+  - Shows strategic thinking. You're not just after any job, you're thinking about where this leads.
+
+- "Jeremy said you just started this company. What have you liked most about it?"
+  - People love this one. It's personal but professional, and the answer tells you loads about the real culture.
+  - Generic: "I noticed you've been here for [X years]. What's kept you here?"
+
+- "What's the biggest challenge this role will face in the first 90 days?" 
+  - Shows you're already thinking about impact, not just getting through probation.
