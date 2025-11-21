@@ -1,10 +1,59 @@
 {
+  "auth": {
+    "user_pool_id": "us-east-1_0VQh6DSCI",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "rcbovu4u76s17325adkan23rf",
+    "identity_pool_id": "us-east-1:a002f649-15aa-4bd6-99e0-72574ba561e6",
+    "mfa_methods": [],
+    "standard_required_attributes": [
+      "email"
+    ],
+    "username_attributes": [
+      "email"
+    ],
+    "user_verification_types": [
+      "email"
+    ],
+    "groups": [],
+    "mfa_configuration": "NONE",
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
+    },
+    "oauth": {
+      "identity_providers": [
+        "GOOGLE"
+      ],
+      "redirect_sign_in_uri": [
+        "http://localhost:5173/",
+        "http://localhost:4173/"
+      ],
+      "redirect_sign_out_uri": [
+        "http://localhost:5173/",
+        "http://localhost:4173/"
+      ],
+      "response_type": "code",
+      "scopes": [
+        "phone",
+        "email",
+        "openid",
+        "profile",
+        "aws.cognito.signin.user.admin"
+      ],
+      "domain": "78ce3b7368bb6bb38833.auth.us-east-1.amazoncognito.com"
+    },
+    "unauthenticated_identities_enabled": true
+  },
   "data": {
     "url": "https://atibbvkquvbwrnow3ak2uxl7yy.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
     "api_key": "da2-eb7ym7cjnzfw3fy6m3lfgqf53a",
     "default_authorization_type": "API_KEY",
     "authorization_types": [
+      "AMAZON_COGNITO_USER_POOLS",
       "AWS_IAM"
     ],
     "model_introspection": {

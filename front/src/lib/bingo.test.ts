@@ -12,6 +12,7 @@ const baseSet: PhraseSet = {
   ratingAverage: 0,
   ratingCount: 0,
   ratingTotal: 0,
+  ownerProfileId: 'tester',
 }
 
 function makeSet(phrases: string[], freeSpace = true): PhraseSet {

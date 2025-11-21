@@ -59,4 +59,10 @@ const schema = a.schema({
 export const data = defineData({
   name: 'data',
   schema,
+  authorizationModes: {
+    defaultAuthorizationMode: 'apiKey',
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
+  },
 })

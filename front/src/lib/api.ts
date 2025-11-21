@@ -7,6 +7,7 @@ export async function createPhraseSet(input: {
   phrases: string[]
   isPublic: boolean
   freeSpace: boolean
+  ownerProfileId: string
 }): Promise<PhraseSet> {
   const response = await fetch(`${API_BASE}/phrase-sets`, {
     method: 'POST',
@@ -28,6 +29,38 @@ export async function fetchPhraseSet(code: string): Promise<PhraseSet> {
     throw new Error((await safeError(response)) ?? 'Phrase set not found')
   }
 
+  return response.json()
+}
+
+export async function fetchMyPhraseSets(ownerProfileId: string): Promise<PhraseSet[]> {
+  const url = new URL(`${API_BASE}/phrase-sets`)
+  url.searchParams.set('owner', ownerProfileId)
+  const response = await fetch(url.toString())
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to load phrase sets')
+  }
+  const data = (await response.json()) as { items?: PhraseSet[] }
+  return data.items ?? []
+}
+
+export async function updatePhraseSet(
+  code: string,
+  input: {
+    title: string
+    phrases: string[]
+    isPublic: boolean
+    freeSpace: boolean
+    ownerProfileId: string
+  }
+): Promise<PhraseSet> {
+  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to update phrase set')
+  }
   return response.json()
 }
 

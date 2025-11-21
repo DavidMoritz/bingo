@@ -1,11 +1,20 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useAuthenticator } from '@aws-amplify/ui-react'
 import { createPhraseSet, suggestPhrases } from '../lib/api'
 import type { PhraseSet } from '../types'
 
 export function CreatePage() {
+  const { user } = useAuthenticator((context) => [context.user])
+  const ownerProfileId =
+    (user as any)?.attributes?.sub ||
+    user?.signInDetails?.loginId ||
+    (user as any)?.attributes?.email ||
+    user?.username ||
+    user?.userId ||
+    'guest'
   const [title, setTitle] = useState('VC Bingo')
-  const [genre, setGenre] = useState('Christmas party')
+  const [genre, setGenre] = useState('Christmas')
   const [isPublic, setIsPublic] = useState(false)
   const [freeSpace, setFreeSpace] = useState(true)
   const [phrasesText, setPhrasesText] = useState(
@@ -18,8 +27,13 @@ export function CreatePage() {
   const [isPhraseDirty, setIsPhraseDirty] = useState(false)
 
   const mutation = useMutation({
-    mutationFn: (input: { title: string; phrases: string[]; isPublic: boolean; freeSpace: boolean }) =>
-      createPhraseSet(input),
+    mutationFn: (input: {
+      title: string
+      phrases: string[]
+      isPublic: boolean
+      freeSpace: boolean
+      ownerProfileId: string
+    }) => createPhraseSet(input),
     onSuccess: (data) => setResult(data),
   })
 
@@ -60,7 +74,13 @@ export function CreatePage() {
     }
 
     try {
-      await mutation.mutateAsync({ title: title.trim(), phrases, isPublic, freeSpace: effectiveFreeSpace })
+      await mutation.mutateAsync({
+        title: title.trim(),
+        phrases,
+        isPublic,
+        freeSpace: effectiveFreeSpace,
+        ownerProfileId,
+      })
     } catch {
       // handled by mutation.error
     }

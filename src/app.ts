@@ -14,6 +14,7 @@ export type PhraseSet = {
   ratingTotal: number
   ratingCount: number
   ratingAverage: number
+  ownerProfileId: string
 }
 
 export type PhraseSetInput = {
@@ -24,6 +25,7 @@ export type PhraseSetInput = {
   ratingTotal: number
   ratingCount: number
   ratingAverage: number
+  ownerProfileId: string
   code?: string
 }
 
@@ -51,7 +53,7 @@ export function buildApp() {
 
   app.post('/phrase-sets', (req, res, next) => {
     try {
-      const { title, phrases, isPublic, freeSpace } = parsePhraseSetInput(req.body)
+      const { title, phrases, isPublic, freeSpace, ownerProfileId } = parsePhraseSetInput(req.body)
 
       const code = createUniqueCode(phraseSets)
       const phraseSet: PhraseSet = {
@@ -64,6 +66,7 @@ export function buildApp() {
         ratingTotal: 0,
         ratingCount: 0,
         ratingAverage: 0,
+        ownerProfileId,
       }
 
       phraseSets.set(code, phraseSet)
@@ -86,6 +89,14 @@ export function buildApp() {
     }
   })
 
+  app.get('/phrase-sets', (req, res) => {
+    const owner = req.query.owner ? String(req.query.owner) : null
+    const items = Array.from(phraseSets.values()).filter((set) =>
+      owner ? set.ownerProfileId === owner : true
+    )
+    res.json({ items })
+  })
+
   app.get('/phrase-sets/:code', (req, res) => {
     const code = String(req.params.code || '').toUpperCase()
     const phraseSet = phraseSets.get(code)
@@ -95,6 +106,32 @@ export function buildApp() {
     }
 
     res.json(phraseSet)
+  })
+
+  app.put('/phrase-sets/:code', (req, res) => {
+    const code = String(req.params.code || '').toUpperCase()
+    const existing = phraseSets.get(code)
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Phrase set not found' })
+    }
+
+    const { title, phrases, isPublic, freeSpace, ownerProfileId } = parsePhraseSetInput(req.body)
+
+    if (ownerProfileId && existing.ownerProfileId && existing.ownerProfileId !== ownerProfileId) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+
+    const updated: PhraseSet = {
+      ...existing,
+      title,
+      phrases,
+      isPublic,
+      freeSpace,
+    }
+
+    phraseSets.set(code, updated)
+    res.json(updated)
   })
 
   app.post('/phrase-sets/:code/rate', (req, res) => {
@@ -143,7 +180,7 @@ function parsePhraseSetInput(body: unknown): PhraseSetInput {
     throw badRequest('Body must be an object')
   }
 
-  const { title, phrases, isPublic, freeSpace } = body as Record<string, unknown>
+  const { title, phrases, isPublic, freeSpace, ownerProfileId } = body as Record<string, unknown>
 
   if (typeof title !== 'string' || !title.trim()) {
     throw badRequest('title must be a non-empty string')
@@ -169,6 +206,7 @@ function parsePhraseSetInput(body: unknown): PhraseSetInput {
     ratingTotal: 0,
     ratingCount: 0,
     ratingAverage: 0,
+    ownerProfileId: typeof ownerProfileId === 'string' && ownerProfileId.trim() ? ownerProfileId.trim() : 'guest',
   }
 }
 
@@ -211,6 +249,7 @@ function createPhraseSetRecord(
     ratingTotal: input.ratingTotal ?? 0,
     ratingCount: input.ratingCount ?? 0,
     ratingAverage: input.ratingAverage ?? 0,
+    ownerProfileId: input.ownerProfileId,
   }
   store.set(code, phraseSet)
   return phraseSet

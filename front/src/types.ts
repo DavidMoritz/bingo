@@ -8,6 +8,7 @@ export type PhraseSet = {
   ratingTotal: number
   ratingCount: number
   ratingAverage: number
+  ownerProfileId: string
 }
 
 export type BingoCell = {

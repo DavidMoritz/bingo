@@ -20,15 +20,15 @@ export function LoginPage() {
           variation="modal"
         />
         {user ? (
-          <p className="mt-3 text-xs text-teal-200">
-            Signed in as {user?.signInDetails?.loginId ?? user?.username}.{' '}
+          <div className="mt-3 flex flex-col gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100">
+            <span>Signed in as {user?.signInDetails?.loginId ?? user?.username ?? 'user'}.</span>
             <button
-              className="text-teal-300 underline"
+              className="self-start rounded-full bg-emerald-400 px-3 py-1 text-[11px] font-semibold text-slate-950 transition hover:translate-y-[-1px]"
               onClick={() => navigate({ to: '/' })}
             >
-              Back home
+              Go to home
             </button>
-          </p>
+          </div>
         ) : null}
       </div>
     </div>

@@ -22,6 +22,7 @@ describe('public phrase sets search', () => {
       ratingAverage: 0,
       ratingCount: 0,
       ratingTotal: 0,
+      ownerProfileId: 'tester',
     })
 
     const results = getPublicSets('alpha')
@@ -40,6 +41,7 @@ describe('public phrase sets search', () => {
       ratingCount: 0,
       ratingTotal: 0,
       code: 'PUBLIC1',
+      ownerProfileId: 'tester',
     })
     // private
     createPhraseSetForTest({
@@ -51,6 +53,7 @@ describe('public phrase sets search', () => {
       ratingCount: 0,
       ratingTotal: 0,
       code: 'PRIVATE1',
+      ownerProfileId: 'tester',
     })
 
     const res = getPublicSets('')
@@ -68,6 +71,7 @@ describe('public phrase sets search', () => {
       ratingCount: 2,
       ratingTotal: 8,
       code: 'ZOO123',
+      ownerProfileId: 'tester',
     })
 
     expect(getPublicSets('penguin')).toHaveLength(1)
@@ -88,6 +92,7 @@ describe('public phrase sets search', () => {
       ratingCount: 1,
       ratingTotal: 2,
       code: 'LOW',
+      ownerProfileId: 'tester',
     })
 
     createPhraseSetForTest({
@@ -99,6 +104,7 @@ describe('public phrase sets search', () => {
       ratingCount: 2,
       ratingTotal: 9,
       code: 'HIGH',
+      ownerProfileId: 'tester',
     })
 
     const results = getPublicSets('')
@@ -118,6 +124,7 @@ describe('public phrase sets search', () => {
         ratingCount: 0,
         ratingTotal: 0,
         code: `CODE${i}`,
+        ownerProfileId: 'tester',
       })
     }
 
