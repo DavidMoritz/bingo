@@ -5,6 +5,7 @@ import CreatePage from './pages/Create'
 import GamePage from './pages/Game'
 import HomePage from './pages/Home'
 import JoinPage from './pages/Join'
+import LoginPage from './pages/Login'
 import { fetchPhraseSet } from './lib/api'
 
 const rootRoute = createRootRoute({
@@ -34,6 +35,12 @@ const joinRoute = createRoute({
   component: JoinPage,
 })
 
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: LoginPage,
+})
+
 const gameRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/game/$code',
@@ -44,7 +51,7 @@ const gameRoute = createRoute({
   },
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, createRouteConfig, joinRoute, gameRoute])
+const routeTree = rootRoute.addChildren([indexRoute, createRouteConfig, joinRoute, loginRoute, gameRoute])
 
 export const router = createRouter({
   routeTree,

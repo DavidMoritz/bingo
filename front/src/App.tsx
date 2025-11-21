@@ -22,6 +22,12 @@ function AppLayout() {
             >
               Play
             </Link>
+            <Link
+              to="/login"
+              className="rounded-full px-3 py-1 transition hover:bg-white/10 hover:text-white"
+            >
+              Login
+            </Link>
           </nav>
         </div>
       </header>

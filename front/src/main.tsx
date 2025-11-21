@@ -5,6 +5,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { router } from './router'
 import './index.css'
 import './amplifyClient'
+import '@aws-amplify/ui-react/styles.css'
 
 const queryClient = new QueryClient()
 
