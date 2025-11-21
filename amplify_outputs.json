@@ -1,0 +1,10 @@
+{
+  "amplify": {
+    "projectName": "bingo",
+    "outputFormat": "json"
+  },
+  "auth": {},
+  "api": {},
+  "analytics": {},
+  "storage": {}
+}
