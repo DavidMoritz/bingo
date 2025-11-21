@@ -141,6 +141,7 @@ export function buildApp() {
       phrases,
       isPublic,
       freeSpace,
+      ownerProfileId,
     }
 
     phraseSets.set(code, updated)
@@ -161,6 +162,33 @@ export function buildApp() {
     existing.ownerProfileId = 'guest'
     phraseSets.set(code, existing)
     res.json(existing)
+  })
+
+  app.post('/phrase-sets/:code/rate', (req, res) => {
+    const code = String(req.params.code || '').toUpperCase()
+    const phraseSet = phraseSets.get(code)
+
+    if (!phraseSet) {
+      return res.status(404).json({ error: 'Phrase set not found' })
+    }
+
+    const rating = Number((req.body as { rating?: unknown })?.rating)
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'rating must be between 1 and 5' })
+    }
+
+    phraseSet.ratingTotal += rating
+    phraseSet.ratingCount += 1
+    phraseSet.ratingAverage = Number((phraseSet.ratingTotal / phraseSet.ratingCount).toFixed(2))
+    phraseSets.set(code, phraseSet)
+
+    res.json(phraseSet)
+  })
+
+  app.get('/phrase-sets/public', (req, res) => {
+    const items = getPublicSets(String(req.query.q ?? ''), phraseSets)
+    const response: PublicPhraseSetResponse = { items }
+    res.json(response)
   })
 
   app.post('/play-sessions', (req, res) => {
@@ -212,33 +240,6 @@ export function buildApp() {
     }
     playSessions.set(id, updated)
     res.json(updated)
-  })
-
-  app.post('/phrase-sets/:code/rate', (req, res) => {
-    const code = String(req.params.code || '').toUpperCase()
-    const phraseSet = phraseSets.get(code)
-
-    if (!phraseSet) {
-      return res.status(404).json({ error: 'Phrase set not found' })
-    }
-
-    const rating = Number((req.body as { rating?: unknown })?.rating)
-    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      return res.status(400).json({ error: 'rating must be between 1 and 5' })
-    }
-
-    phraseSet.ratingTotal += rating
-    phraseSet.ratingCount += 1
-    phraseSet.ratingAverage = Number((phraseSet.ratingTotal / phraseSet.ratingCount).toFixed(2))
-    phraseSets.set(code, phraseSet)
-
-    res.json(phraseSet)
-  })
-
-  app.get('/phrase-sets/public', (req, res) => {
-    const items = getPublicSets(String(req.query.q ?? ''), phraseSets)
-    const response: PublicPhraseSetResponse = { items }
-    res.json(response)
   })
 
   app.use(notFoundMiddleware)
@@ -548,4 +549,12 @@ function getPublicSets(query: string, store: Map<string, PhraseSet>): PhraseSet[
       return b.createdAt.localeCompare(a.createdAt)
     })
     .slice(0, 30)
+}
+
+if (require.main === module) {
+  const { app } = buildApp()
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000
+  app.listen(port, () => {
+    console.log(`Bingo API listening on http://localhost:${port}`)
+  })
 }

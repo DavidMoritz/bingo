@@ -16,11 +16,6 @@ export function ProfilePage() {
     user?.userId ||
     ''
 
-    const ownerLabel =
-    (user as any)?.attributes?.email ||
-    user?.signInDetails?.loginId ||
-    (user as any)?.attributes?.sub ||
-    ownerProfileId
 
   const { data: mySets, refetch, isLoading } = useQuery({
     queryKey: ['my-phrase-sets', ownerProfileId],

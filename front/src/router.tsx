@@ -1,4 +1,5 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import AppLayout from './App'
 import CreatePage from './pages/Create'
@@ -7,8 +8,9 @@ import HomePage from './pages/Home'
 import JoinPage from './pages/Join'
 import ProfilePage from './pages/Profile'
 import LoginPage from './pages/Login'
-import { fetchPhraseSet, fetchPlaySession } from './lib/api'
+import { fetchPhraseSet, fetchPlaySession, fetchMySessions } from './lib/api'
 import SessionGameWrapper from './pages/SessionGameWrapper'
+import { useUserInfo } from './contexts/UserContext'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -52,10 +54,35 @@ const profileRoute = createRoute({
 const gameRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/game/$code',
-  loader: ({ params }) => fetchPhraseSet(params.code),
+  loader: async ({ params }) => {
+    // tries to find an existing session for this code for the signed-in user
+    // fallback to loading the phrase set
+    return { code: params.code }
+  },
   component: () => {
-    const phraseSet = gameRoute.useLoaderData()
-    return <GamePage phraseSet={phraseSet} />
+    const { code } = gameRoute.useLoaderData() as { code: string }
+    const { profileId } = useUserInfo()
+    const { data: session } =
+      useQuery({
+        queryKey: ['session-for-code', profileId, code],
+        queryFn: async () => {
+          if (!profileId) return null
+          const sessions = await fetchMySessions(profileId)
+          return sessions.find((s) => s.phraseSetCode.toUpperCase() === code.toUpperCase()) ?? null
+        },
+        enabled: Boolean(profileId),
+      }) || {}
+    const phraseSetData = useQuery({
+      queryKey: ['phrase-set', code],
+      queryFn: () => fetchPhraseSet(code),
+      enabled: !session,
+    })
+
+    const phraseSet = session ? null : phraseSetData.data ?? null
+    const isLoading = (!session && phraseSetData.isLoading) || (!session && !phraseSet)
+    if (isLoading) return <p className="text-slate-200">Loading…</p>
+
+    return <GamePage phraseSet={phraseSet} session={session ?? undefined} />
   },
 })
 

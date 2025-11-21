@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { createBingoBoard, toggleCell } from '../lib/bingo'
@@ -60,12 +60,13 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   const [myRating, setMyRating] = useState<number | null>(null)
   const [hasRated, setHasRated] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(session?.id ?? null)
+  const hasCreatedSession = useRef(false)
 
   const selectedCount = useMemo(() => (board ? board.cells.filter((c) => c.selected).length : 0), [board])
 
   useEffect(() => {
     async function ensureSession() {
-      if (!board || !currentSet || sessionId || !ownerProfileId) return
+      if (!board || !currentSet || sessionId || !ownerProfileId || hasCreatedSession.current) return
       try {
         const created = await createPlaySession({
           profileId: ownerProfileId,
@@ -77,6 +78,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           checkedCells: board.cells.map((c, idx) => (c.selected ? idx : -1)).filter((idx) => idx >= 0),
         })
         setSessionId(created.id)
+        hasCreatedSession.current = true
       } catch {
         // ignore create errors
       }
@@ -135,6 +137,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   if (!board || !currentSet) {
     return <p className="text-slate-200">Unable to load board.</p>
   }
+  console.log(currentSet, ownerProfileId);
 
   return (
     <div className="space-y-6">
