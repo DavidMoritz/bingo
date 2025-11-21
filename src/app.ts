@@ -29,6 +29,18 @@ export type PhraseSetInput = {
   code?: string
 }
 
+export type PlaySession = {
+  id: string
+  profileId: string
+  phraseSetCode: string
+  phraseSetTitle?: string
+  gridSize: number
+  usesFreeCenter: boolean
+  boardSnapshot: { text: string; isFree?: boolean }[]
+  checkedCells: number[]
+  createdAt: string
+}
+
 type PhraseSuggestionResponse = {
   genre: string
   phrases: string[]
@@ -43,6 +55,7 @@ export function buildApp() {
 
   // Very small, in-memory data store. Replace with a DB for persistence.
   const phraseSets = new Map<string, PhraseSet>()
+  const playSessions = new Map<string, PlaySession>()
 
   app.use(cors())
   app.use(express.json())
@@ -148,6 +161,57 @@ export function buildApp() {
     existing.ownerProfileId = 'guest'
     phraseSets.set(code, existing)
     res.json(existing)
+  })
+
+  app.post('/play-sessions', (req, res) => {
+    const payload = req.body as Partial<PlaySession>
+    if (!payload.profileId || !payload.phraseSetCode || !payload.gridSize || !payload.boardSnapshot) {
+      return res.status(400).json({ error: 'Missing required fields' })
+    }
+    const id = generateCode(10)
+    const session: PlaySession = {
+      id,
+      profileId: payload.profileId,
+      phraseSetCode: payload.phraseSetCode,
+      phraseSetTitle: payload.phraseSetTitle ?? '',
+      gridSize: payload.gridSize,
+      usesFreeCenter: Boolean(payload.usesFreeCenter),
+      boardSnapshot: payload.boardSnapshot,
+      checkedCells: payload.checkedCells ?? [],
+      createdAt: new Date().toISOString(),
+    }
+    playSessions.set(id, session)
+    res.status(201).json(session)
+  })
+
+  app.get('/play-sessions', (req, res) => {
+    const profileId = String(req.query.profileId ?? '')
+    if (!profileId) return res.status(400).json({ error: 'profileId required' })
+    const items = Array.from(playSessions.values()).filter((s) => s.profileId === profileId)
+    res.json({ items })
+  })
+
+  app.get('/play-sessions/:id', (req, res) => {
+    const id = String(req.params.id || '')
+    const session = playSessions.get(id)
+    if (!session) return res.status(404).json({ error: 'Session not found' })
+    res.json(session)
+  })
+
+  app.put('/play-sessions/:id', (req, res) => {
+    const id = String(req.params.id || '')
+    const session = playSessions.get(id)
+    if (!session) return res.status(404).json({ error: 'Session not found' })
+    const body = req.body as Partial<PlaySession>
+    if (body.profileId && body.profileId !== session.profileId) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+    const updated: PlaySession = {
+      ...session,
+      checkedCells: body.checkedCells ?? session.checkedCells,
+    }
+    playSessions.set(id, updated)
+    res.json(updated)
   })
 
   app.post('/phrase-sets/:code/rate', (req, res) => {

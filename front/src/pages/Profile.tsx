@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useEffect, useState } from 'react'
-import { fetchMyPhraseSets, orphanPhraseSet, updatePhraseSet } from '../lib/api'
-import type { PhraseSet } from '../types'
+import { fetchMyPhraseSets, fetchMySessions, orphanPhraseSet, updatePhraseSet } from '../lib/api'
+import type { PhraseSet, PlaySession } from '../types'
+import { useUserInfo } from '../contexts/UserContext'
 
 export function ProfilePage() {
+  const { displayName, email } = useUserInfo();
   const { user } = useAuthenticator((context) => [context.user])
   const ownerProfileId =
     (user as any)?.attributes?.sub ||
@@ -14,11 +16,24 @@ export function ProfilePage() {
     user?.userId ||
     ''
 
+    const ownerLabel =
+    (user as any)?.attributes?.email ||
+    user?.signInDetails?.loginId ||
+    (user as any)?.attributes?.sub ||
+    ownerProfileId
+
   const { data: mySets, refetch, isLoading } = useQuery({
     queryKey: ['my-phrase-sets', ownerProfileId],
     queryFn: () => fetchMyPhraseSets(ownerProfileId),
     enabled: Boolean(ownerProfileId),
   })
+
+  const { data: sessions, refetch: refetchSessions } = useQuery({
+    queryKey: ['my-sessions', ownerProfileId],
+    queryFn: () => fetchMySessions(ownerProfileId),
+    enabled: Boolean(ownerProfileId),
+  })
+  
 
   const [editing, setEditing] = useState<PhraseSet | null>(null)
   const [title, setTitle] = useState('')
@@ -60,6 +75,7 @@ export function ProfilePage() {
     onSuccess: () => {
       setEditing(null)
       refetch()
+      refetchSessions()
     },
   })
 
@@ -77,7 +93,7 @@ export function ProfilePage() {
         <header className="mb-4 space-y-1">
           <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Profile</p>
           <h2 className="text-2xl font-bold text-white">My boards</h2>
-          <p className="text-sm text-slate-300">Owned by {ownerProfileId}</p>
+          <p className="text-sm text-slate-300">Owned by {email || displayName}</p>
         </header>
 
         {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
@@ -204,6 +220,31 @@ export function ProfilePage() {
         ) : (
           <p className="text-sm text-slate-400">Select a board to edit.</p>
         )}
+      </section>
+
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200 shadow-xl shadow-black/30 lg:col-span-2">
+        <header className="mb-3 space-y-1">
+          <p className="text-xs uppercase tracking-[0.3em] text-teal-300">History</p>
+          <h3 className="text-xl font-semibold text-white">Play sessions</h3>
+        </header>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(sessions ?? []).map((s: PlaySession) => (
+            <a
+              href={`/session/${s.id}`}
+              key={s.id}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-white">{s.phraseSetTitle || s.phraseSetCode}</span>
+                <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">#{s.gridSize}x{s.gridSize}</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                {new Date(s.createdAt).toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">{s.checkedCells.length} checked</p>
+            </a>
+          ))}
+        </div>
       </section>
     </div>
   )

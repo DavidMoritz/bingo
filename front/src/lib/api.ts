@@ -1,4 +1,5 @@
 import type { PhraseSet } from '../types'
+import type { PlaySession } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
@@ -60,6 +61,18 @@ export async function updatePhraseSet(
   })
   if (!response.ok) {
     throw new Error((await safeError(response)) ?? 'Failed to update phrase set')
+  }
+  return response.json()
+}
+
+export async function claimOwnership(code: string, ownerProfileId: string): Promise<PhraseSet> {
+  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerProfileId }),
+  })
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to claim ownership')
   }
   return response.json()
 }
@@ -133,4 +146,58 @@ async function safeError(response: Response): Promise<string | null> {
     // ignore parse errors
   }
   return null
+}
+
+export async function createPlaySession(input: {
+  profileId: string
+  phraseSetCode: string
+  phraseSetTitle?: string
+  gridSize: number
+  usesFreeCenter: boolean
+  boardSnapshot: { text: string; isFree?: boolean }[]
+  checkedCells: number[]
+}): Promise<PlaySession> {
+  const response = await fetch(`${API_BASE}/play-sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to create session')
+  }
+  return response.json()
+}
+
+export async function updatePlaySessionChecked(
+  id: string,
+  input: { profileId: string; checkedCells: number[] }
+): Promise<PlaySession> {
+  const response = await fetch(`${API_BASE}/play-sessions/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to update session')
+  }
+  return response.json()
+}
+
+export async function fetchPlaySession(id: string): Promise<PlaySession> {
+  const response = await fetch(`${API_BASE}/play-sessions/${encodeURIComponent(id)}`)
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Session not found')
+  }
+  return response.json()
+}
+
+export async function fetchMySessions(profileId: string): Promise<PlaySession[]> {
+  const url = new URL(`${API_BASE}/play-sessions`)
+  url.searchParams.set('profileId', profileId)
+  const response = await fetch(url.toString())
+  if (!response.ok) {
+    throw new Error((await safeError(response)) ?? 'Failed to load sessions')
+  }
+  const data = (await response.json()) as { items?: PlaySession[] }
+  return data.items ?? []
 }

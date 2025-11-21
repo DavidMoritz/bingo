@@ -25,3 +25,15 @@ export type BingoBoard = {
   usesFreeCenter: boolean
   cells: BingoCell[]
 }
+
+export type PlaySession = {
+  id: string
+  profileId: string
+  phraseSetCode: string
+  phraseSetTitle?: string
+  gridSize: number
+  usesFreeCenter: boolean
+  boardSnapshot: { text: string; isFree?: boolean }[]
+  checkedCells: number[]
+  createdAt: string
+}

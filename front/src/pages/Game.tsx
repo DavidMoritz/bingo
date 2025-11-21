@@ -1,31 +1,116 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useAuthenticator } from '@aws-amplify/ui-react'
 import { createBingoBoard, toggleCell } from '../lib/bingo'
-import { ratePhraseSet } from '../lib/api'
-import type { BingoBoard, PhraseSet } from '../types'
+import { ratePhraseSet, createPlaySession, updatePlaySessionChecked, claimOwnership } from '../lib/api'
+import type { BingoBoard, PhraseSet, PlaySession } from '../types'
 
 type GamePageProps = {
-  phraseSet: PhraseSet
+  phraseSet: PhraseSet | null
+  session?: PlaySession | null
 }
 
-export function GamePage({ phraseSet }: GamePageProps) {
-  const [board, setBoard] = useState<BingoBoard>(() => createBingoBoard(phraseSet, phraseSet.freeSpace))
-  const [currentSet, setCurrentSet] = useState<PhraseSet>(phraseSet)
+export function GamePage({ phraseSet, session }: GamePageProps) {
+  const { user } = useAuthenticator((context) => [context.user])
+  const ownerProfileId =
+    (user as any)?.attributes?.sub ||
+    user?.signInDetails?.loginId ||
+    (user as any)?.attributes?.email ||
+    user?.username ||
+    user?.userId ||
+    ''
+
+  const sessionBoard =
+    session && phraseSet === null
+      ? {
+          code: session.phraseSetCode,
+          title: session.phraseSetTitle ?? session.phraseSetCode,
+          gridSize: session.gridSize,
+          usesFreeCenter: session.usesFreeCenter,
+          cells: session.boardSnapshot.map((snapshot, idx) => ({
+            id: `cell-${idx}`,
+            text: snapshot.text,
+            isFree: snapshot.isFree,
+            selected: session.checkedCells.includes(idx),
+          })),
+        }
+      : null
+
+  const initialPhraseSet: PhraseSet | null =
+    phraseSet ??
+    (session
+      ? {
+          code: session.phraseSetCode,
+          title: session.phraseSetTitle ?? session.phraseSetCode,
+          phrases: session.boardSnapshot.map((b) => b.text),
+          createdAt: session.createdAt,
+          isPublic: true,
+          freeSpace: session.usesFreeCenter,
+          ratingTotal: 0,
+          ratingCount: 0,
+          ratingAverage: 0,
+          ownerProfileId: 'guest',
+        }
+      : null)
+
+  const [board, setBoard] = useState<BingoBoard | null>(
+    sessionBoard ?? (initialPhraseSet ? createBingoBoard(initialPhraseSet, initialPhraseSet.freeSpace) : null)
+  )
+  const [currentSet, setCurrentSet] = useState<PhraseSet | null>(initialPhraseSet)
   const [myRating, setMyRating] = useState<number | null>(null)
   const [hasRated, setHasRated] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(session?.id ?? null)
 
-  const selectedCount = useMemo(() => board.cells.filter((c) => c.selected).length, [board])
+  const selectedCount = useMemo(() => (board ? board.cells.filter((c) => c.selected).length : 0), [board])
+
+  useEffect(() => {
+    async function ensureSession() {
+      if (!board || !currentSet || sessionId || !ownerProfileId) return
+      try {
+        const created = await createPlaySession({
+          profileId: ownerProfileId,
+          phraseSetCode: currentSet.code,
+          phraseSetTitle: currentSet.title,
+          gridSize: board.gridSize,
+          usesFreeCenter: board.usesFreeCenter,
+          boardSnapshot: board.cells.map((c) => ({ text: c.text, isFree: c.isFree })),
+          checkedCells: board.cells.map((c, idx) => (c.selected ? idx : -1)).filter((idx) => idx >= 0),
+        })
+        setSessionId(created.id)
+      } catch {
+        // ignore create errors
+      }
+    }
+    ensureSession()
+  }, [board, currentSet, ownerProfileId, sessionId])
+
+  const updateSessionCheckedMutation = useMutation({
+    mutationFn: ({ id, checked }: { id: string; checked: number[] }) =>
+      updatePlaySessionChecked(id, { profileId: ownerProfileId, checkedCells: checked }),
+  })
 
   function handleCellClick(cellId: string) {
-    setBoard((current) => toggleCell(current, cellId))
+    setBoard((current) => {
+      if (!current) return current
+      const next = toggleCell(current, cellId)
+      if (sessionId && ownerProfileId) {
+        const checked = next.cells
+          .map((c, idx) => (c.selected ? idx : -1))
+          .filter((idx) => idx >= 0)
+        updateSessionCheckedMutation.mutate({ id: sessionId, checked })
+      }
+      return next
+    })
   }
 
   function reshuffle() {
+    if (!currentSet) return
+    setSessionId(null)
     setBoard(createBingoBoard(currentSet, currentSet.freeSpace))
   }
 
   const ratingMutation = useMutation({
-    mutationFn: (rating: number) => ratePhraseSet(currentSet.code, rating),
+    mutationFn: (rating: number) => ratePhraseSet(currentSet!.code, rating),
     onSuccess: (updated) => {
       setCurrentSet(updated)
       setHasRated(true)
@@ -34,7 +119,21 @@ export function GamePage({ phraseSet }: GamePageProps) {
 
   function submitRating(value: number) {
     setMyRating(value)
-    ratingMutation.mutate(value)
+    if (currentSet) ratingMutation.mutate(value)
+  }
+
+  async function handleClaimOwnership() {
+    if (!currentSet || !ownerProfileId) return
+    try {
+      const updated = await claimOwnership(currentSet.code, ownerProfileId)
+      setCurrentSet(updated)
+    } catch {
+      // ignore claim errors
+    }
+  }
+
+  if (!board || !currentSet) {
+    return <p className="text-slate-200">Unable to load board.</p>
   }
 
   return (
@@ -42,10 +141,24 @@ export function GamePage({ phraseSet }: GamePageProps) {
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Game</p>
-          <h2 className="text-3xl font-bold text-white">{phraseSet.title}</h2>
+          <h2 className="text-3xl font-bold text-white">{currentSet.title}</h2>
           <p className="text-sm text-slate-300">
-            Code <span className="font-mono text-white">{phraseSet.code}</span> ·{' '}
-            {phraseSet.phrases.length} phrases · {selectedCount} selected
+            Code <span className="font-mono text-white">{currentSet.code}</span> ·{' '}
+            {currentSet.phrases.length} phrases · {selectedCount} selected
+          </p>
+          <p className="text-xs text-slate-400">
+            Created by:{' '}
+            {currentSet.ownerProfileId && currentSet.ownerProfileId !== 'guest'
+              ? currentSet.ownerProfileId
+              : 'guest'}
+            {ownerProfileId && currentSet.ownerProfileId === 'guest' ? (
+              <button
+                className="ml-2 text-teal-300 underline"
+                onClick={handleClaimOwnership}
+              >
+                (Click to claim ownership)
+              </button>
+            ) : null}
           </p>
           <div className="mt-2 flex items-center gap-3 text-sm text-slate-200">
             {hasRated ? (
@@ -53,12 +166,7 @@ export function GamePage({ phraseSet }: GamePageProps) {
                 Thank you for your feedback!
               </span>
             ) : (
-              <StarRating
-                value={currentSet.ratingAverage}
-                onRate={submitRating}
-                userValue={myRating}
-                disabled={ratingMutation.isPending}
-              />
+              <StarRating value={currentSet.ratingAverage} onRate={submitRating} userValue={myRating} />
             )}
             <span className="text-xs text-slate-400">
               {currentSet.ratingAverage.toFixed(2)} ({currentSet.ratingCount} ratings)
@@ -102,7 +210,7 @@ export function GamePage({ phraseSet }: GamePageProps) {
       <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-slate-300">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Phrases</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {phraseSet.phrases.map((p, idx) => (
+          {currentSet.phrases.map((p, idx) => (
             <div
               className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200"
               key={`${p}-${idx}`}
@@ -115,8 +223,6 @@ export function GamePage({ phraseSet }: GamePageProps) {
     </div>
   )
 }
-
-export default GamePage
 
 type StarRatingProps = {
   value: number
@@ -151,3 +257,5 @@ function StarRating({ value, userValue, onRate, disabled }: StarRatingProps) {
     </div>
   )
 }
+
+export default GamePage

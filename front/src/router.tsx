@@ -7,7 +7,8 @@ import HomePage from './pages/Home'
 import JoinPage from './pages/Join'
 import ProfilePage from './pages/Profile'
 import LoginPage from './pages/Login'
-import { fetchPhraseSet } from './lib/api'
+import { fetchPhraseSet, fetchPlaySession } from './lib/api'
+import SessionGameWrapper from './pages/SessionGameWrapper'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -58,12 +59,20 @@ const gameRoute = createRoute({
   },
 })
 
+const sessionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/session/$id',
+  loader: ({ params }) => fetchPlaySession(params.id),
+  component: SessionGameWrapper,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   createRouteConfig,
   joinRoute,
   loginRoute,
   profileRoute,
+  sessionRoute,
   gameRoute,
 ])
 
