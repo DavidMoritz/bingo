@@ -8,3 +8,4 @@ coverage/
 npm-debug.log*
 .amplify/
 **/secret.json
+deployment-logs
