@@ -23,16 +23,16 @@ function useAutoFitText(text: string, containerRef: React.RefObject<HTMLElement>
     if (!container) return
 
     const measure = () => {
-      const maxWidth = container.clientWidth - 16 // padding
-      const maxHeight = container.clientHeight - 24 // padding
+      const maxWidth = container.clientWidth - 8 // reduced padding
+      const maxHeight = container.clientHeight - 12 // reduced padding
 
       let size = 20
       let fits = false
 
       while (size > 8 && !fits) {
         container.style.fontSize = `${size}px`
-        const textWidth = container.scrollWidth - 16
-        const textHeight = container.scrollHeight - 24
+        const textWidth = container.scrollWidth - 8
+        const textHeight = container.scrollHeight - 12
 
         if (textWidth <= maxWidth && textHeight <= maxHeight) {
           fits = true
@@ -318,7 +318,7 @@ function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
       ref={cellRef}
       onClick={onClick}
       lang="en"
-      className={`flex min-h-[90px] items-center justify-center overflow-hidden rounded-2xl border px-2 py-3 text-center font-semibold leading-tight transition ${
+      className={`flex min-h-[90px] items-center justify-center overflow-hidden rounded-2xl border px-1 py-1.5 text-center font-semibold leading-tight transition ${
         selected
           ? 'border-teal-300 bg-teal-400 text-slate-950 shadow-lg shadow-teal-400/40'
           : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10'
