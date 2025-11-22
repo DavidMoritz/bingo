@@ -292,7 +292,7 @@ export function CreatePage() {
     if (!result) return
 
     const shareUrl = `${window.location.origin}/game/${result.code}`
-    const shareText = `I created a bingo card called "${result.title}" - want to play? 🎲\n\n${shareUrl}`
+    const shareText = `I created a bingo card called "${result.title}" - want to play? 🎲\n\n⚡ ${shareUrl}`
 
     // Try Web Share API first (native share on mobile/desktop)
     if (navigator.share) {

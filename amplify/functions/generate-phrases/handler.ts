@@ -26,7 +26,7 @@ export const handler: Schema['generatePhrases']['functionHandler'] = async (even
         messages: [
           {
             role: 'user',
-            content: `Generate exactly 25 fun, creative bingo phrases for the theme "${genre}".
+            content: `Generate exactly 30 fun, creative bingo phrases for the theme "${genre}".
 
 Requirements:
 - Each phrase should be 2-6 words
@@ -37,7 +37,7 @@ Requirements:
 
 Example for "beach": ["sunscreen application", "lost flip flop", "sandcastle competition", "seagull attack", "beach volleyball"]
 
-Now generate 25 phrases for "${genre}":`,
+Now generate 30 phrases for "${genre}":`,
           },
         ],
       }),
