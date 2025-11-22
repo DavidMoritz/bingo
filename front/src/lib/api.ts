@@ -101,6 +101,34 @@ export async function orphanPhraseSet(code: string, _ownerProfileId: string): Pr
   return res.data as PhraseSet
 }
 
+const sortSetsByBayesianScore = (sets: PhraseSet[]): PhraseSet[] => {
+  // 1. Calculate global average rating 'm'
+  const ratedSets = sets.filter((s) => s.ratingCount > 0)
+
+  // If no sets are rated, return original order as we can't calculate a meaningful average.
+  if (ratedSets.length === 0) {
+    return sets
+  }
+
+  const totalRatingsSum = ratedSets.reduce((sum, s) => sum + s.ratingAverage, 0)
+  const m = totalRatingsSum / ratedSets.length // prior mean
+
+  // 2. Define the "confidence" constant 'C'. This represents the weight of the prior.
+  // A good starting point is the average number of ratings, but a fixed value is simpler.
+  const C = 5 // prior weight
+
+  // 3. Calculate score for each set and sort
+  const sortedSets = [...sets]
+    .map((set) => {
+      // For sets with 0 ratings, their score will be pulled towards the prior mean 'm'.
+      const score = (C * m + set.ratingTotal) / (C + set.ratingCount)
+      return { ...set, bayesianScore: score }
+    })
+    .sort((a, b) => b.bayesianScore - a.bayesianScore)
+
+  return sortedSets
+}
+
 export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]> {
   const client = getDataClient()
 
@@ -109,21 +137,19 @@ export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]>
   const res = await client.models.PhraseSet.list({ filter })
   const allPublicSets = (res?.data as PhraseSet[]) ?? []
 
-  // If no query, return all public sets
-  if (!query.trim()) {
-    return allPublicSets
-  }
+  // Filter sets based on query if it exists
+  const setsToShow = !query.trim()
+    ? allPublicSets
+    : allPublicSets.filter((set) => {
+        const lowerQuery = query.trim().toLowerCase()
+        const lowerTitle = set.title.toLowerCase()
+        const lowerCode = set.code.toLowerCase()
+        const hasMatchingPhrase = set.phrases.some((phrase) => phrase.toLowerCase().includes(lowerQuery))
+        return lowerTitle.includes(lowerQuery) || lowerCode.includes(lowerQuery) || hasMatchingPhrase
+      })
 
-  // Client-side fuzzy search (case-insensitive)
-  const lowerQuery = query.trim().toLowerCase()
-  return allPublicSets.filter((set) => {
-    const lowerTitle = set.title.toLowerCase()
-    const lowerCode = set.code.toLowerCase()
-    const hasMatchingPhrase = set.phrases.some((phrase) => phrase.toLowerCase().includes(lowerQuery))
-
-    // Check if query is contained in title, code, or any phrases
-    return lowerTitle.includes(lowerQuery) || lowerCode.includes(lowerQuery) || hasMatchingPhrase
-  })
+  // Sort the resulting sets by the Bayesian score
+  return sortSetsByBayesianScore(setsToShow)
 }
 
 export async function fetchUserRating(profileId: string, phraseSetCode: string): Promise<{ id: string; ratingValue: number } | null> {
