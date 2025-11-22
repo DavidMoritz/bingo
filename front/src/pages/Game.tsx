@@ -239,16 +239,16 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
       <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Like this board?</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Can you make this better?</p>
             <p className="mt-1 text-sm text-slate-300">
-              Create your own version with custom phrases and settings
+              Create your own version to improve the phrases!
             </p>
           </div>
           <button
             onClick={handleRebuild}
             className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
           >
-            Rebuild
+            Bolt this Board
           </button>
         </div>
       </div>

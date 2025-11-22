@@ -48,7 +48,7 @@ function AppLayout() {
           <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
             <Link to="/" className="group inline-flex items-center gap-2 text-lg font-semibold">
               <span className="h-2 w-2 rounded-full bg-emerald-400 transition group-hover:scale-125" />
-              Bingo Builder
+              Bingo Bolt
             </Link>
             <nav className="flex items-center gap-4 text-sm font-medium text-slate-200">
               <Link

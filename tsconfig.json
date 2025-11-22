@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "types": ["node", "vitest"]
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "amplify"]
 }
