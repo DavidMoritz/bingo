@@ -1,10 +1,11 @@
 # Bingo App Architecture Guide
 
 ## Overview
-- **Backend**: AWS Amplify (DynamoDB + GraphQL API + Cognito Auth)
+- **Backend**: AWS Amplify Gen 2 (DynamoDB + GraphQL API + Cognito Auth)
 - **Frontend**: Vite + React 19 + TypeScript with TanStack Router, React Query, and Tailwind CSS
 - **Authentication**: AWS Cognito with email and Google OAuth support
-- **Build/Dev**: Vite powers fast dev server and optimized builds; `npx ampx sandbox` for backend, `npm run dev` for frontend
+- **CI/CD**: AWS Amplify Hosting with git-based deployments
+- **Build/Dev**: Vite powers fast dev server; `npx ampx sandbox` for local backend development; Git push triggers production deployment
 
 ## Backend (AWS Amplify)
 
@@ -67,10 +68,16 @@ All models use API Key authorization mode (`publicApiKey`) for simplicity.
 - **User Context**: `UserContext` provides `displayName`, `email`, and `profileId` throughout app
 - **Unauthenticated access**: Enabled for guest users (API key auth mode)
 
-### Amplify Configuration
-- **File**: `amplify/data/resource.ts` defines all models and authorization rules
-- **Deployment**: `npx ampx sandbox` for local development, `npx ampx deploy` for production
-- **Outputs**: `amplify_outputs.json` (root) and `front/src/amplify_outputs.json` contain API endpoints, auth config, and model schemas
+### Amplify Gen 2 Configuration
+- **Backend Code**: `amplify/backend.ts` defines backend resources
+- **Data Schema**: `amplify/data/resource.ts` defines all models and authorization rules
+- **Auth Config**: `amplify/auth/resource.ts` defines Cognito auth with email and Google OAuth
+- **Functions**: `amplify/functions/` directory for Lambda functions (currently only phrase generation)
+- **Deployment**:
+  - **Local Development**: `npx ampx sandbox` creates isolated sandbox environment with hot-reload
+  - **Production**: `git push` triggers CI/CD pipeline via Amplify Hosting
+  - **Manual Deploy**: Not recommended in Gen 2 - use git workflow instead
+- **Outputs**: `amplify_outputs.json` auto-generated on deployment, contains API endpoints, auth config, and model schemas
 
 ## Frontend Stack
 
@@ -181,31 +188,72 @@ All models use API Key authorization mode (`publicApiKey`) for simplicity.
 
 ## Running and Building
 
-### Backend (Amplify)
+### Amplify Gen 2 Workflow
+
+**Key Concept**: Git is the source of truth. Backend configuration is code in the `amplify/` directory.
+
+#### Local Development
 ```bash
-# Start sandbox (auto-reload on schema changes)
+# 1. Pull latest changes from team
+git pull
+
+# 2. Start backend sandbox (creates isolated environment)
 npx ampx sandbox
+# - Deploys backend to cloud sandbox
+# - Watches for changes and hot-reloads
+# - Generates amplify_outputs.json
+# - Each developer gets their own sandbox
 
-# Deploy to cloud
-npx ampx deploy
-
-# Seed phrase templates (one-time migration)
-npm run seed-templates
+# 3. Start frontend (in separate terminal)
+cd front
+npm run dev      # Vite dev server (port 5173)
 ```
 
-### Frontend
+#### Production Deployment
 ```bash
+# 1. Make changes to amplify/ or front/
+# 2. Commit changes
+git add .
+git commit -m "Add new feature"
+
+# 3. Push to trigger deployment
+git push
+# - Amplify Hosting detects push
+# - Runs build via amplify.yml configuration
+# - Deploys backend (if enabled in amplify.yml)
+# - Builds and deploys frontend
+```
+
+#### Build Configuration (`amplify.yml`)
+The project uses a monorepo structure with frontend in `front/` subdirectory:
+- **appRoot: front** - Sets working directory for frontend commands
+- **Backend phase**: Runs `npx ampx pipeline-deploy` (currently disabled for faster builds)
+- **Frontend phase**: Runs `npm ci` and `npm run build` from `front/` directory
+- **Artifacts**: Collected from `front/dist/`
+
+**Fast builds** (~2 min): Backend deployment disabled, only frontend builds
+**Full builds** (~9 min): Backend + frontend deployment (uncomment backend section in amplify.yml)
+
+#### Other Commands
+```bash
+# Frontend testing
 cd front
-npm install
-npm run dev      # Vite dev server (port 5173)
-npm run build    # Production build
-npm run preview  # Preview production build
 npm test         # Run Vitest tests
+npm run build    # TypeScript check + production build
+npm run preview  # Preview production build
+
+# Legacy backend (deprecated Express API, still used for suggestions)
+npm run dev      # Start Express server (port 3000)
+npm run build    # Compile TypeScript
+npm test         # Run backend tests
 ```
 
 ### Environment Variables
-- `VITE_API_URL`: Not used anymore (Express API deprecated)
-- Google OAuth secrets: Set in Amplify console (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`)
+- **Google OAuth**: Set in Amplify Console under app settings
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+- **VITE_API_URL**: Set to Express API URL for phrase suggestions (defaults to `http://localhost:3000`)
+  - Note: Express API still handles phrase suggestions; not yet migrated to Amplify function
 
 ### Testing
 - **Backend**: `npm test` (Vitest, no network binding) - **Note**: Tests are for deprecated Express API
@@ -215,23 +263,32 @@ npm test         # Run Vitest tests
 
 ## Migration Notes
 
-### Deprecated Express API (`src/` directory)
-The Express backend is **no longer used** and can be removed. All functionality has been migrated to Amplify:
+### Express API Status (`src/` directory)
+The Express backend is **partially deprecated**:
 
-- ✅ Phrase sets → `PhraseSet` model (DynamoDB)
-- ✅ Ratings → `Rating` model with proper uniqueness constraints
-- ✅ Phrase suggestions → `PhraseTemplate` model with caching
-- ✅ Public search → GraphQL list queries with filters
-- ❌ Express endpoints → All replaced with Amplify Data client
+- ✅ **Migrated to Amplify**:
+  - Phrase sets → `PhraseSet` model (DynamoDB)
+  - Ratings → `Rating` model with proper uniqueness constraints
+  - Phrase templates → `PhraseTemplate` model with caching
+  - Public search → GraphQL list queries with filters
 
-**To remove Express completely:**
-1. Delete `src/` directory (except `suggestions/` already migrated)
-2. Remove Express dependencies from `package.json`
-3. Update tests to use Amplify mocks
+- ⚠️ **Still Using Express**:
+  - Phrase suggestions endpoint (`POST /phrase-suggestions`)
+  - Reads from `src/suggestions/*.json` templates
+  - Frontend calls `VITE_API_URL` for suggestions
+  - Not yet migrated to Amplify function
 
-### Seeded Templates
-12 phrase templates migrated from `src/suggestions/*.json`:
+**To complete migration:**
+1. Create Amplify function for phrase suggestions
+2. Migrate suggestion logic to Lambda
+3. Update frontend to call GraphQL mutation instead of REST endpoint
+4. Remove Express API and dependencies
+
+### Phrase Templates
+12 phrase templates available from Express API (`src/suggestions/*.json`):
 - amusement, beach, city, birthday, christmas, fireworks, mountain, office, parade, startup, wedding, zoo
+
+These need to be seeded into `PhraseTemplate` DynamoDB table via migration script (`npm run seed-templates`)
 
 ### Future Enhancements
 
@@ -253,6 +310,48 @@ export async function handler(event) {
   return phrases
 }
 ```
+
+## CI/CD and Deployment
+
+### Amplify Hosting Pipeline
+- **Trigger**: Automatic on `git push` to `main` branch
+- **Build Environment**: AWS CodeBuild (Standard compute: 8GB memory, 4 vCPUs)
+- **Build Configuration**: `amplify.yml` in repository root
+- **Deployment Time**:
+  - Frontend-only: ~2 minutes
+  - Backend + Frontend: ~9 minutes (includes CloudFormation stack updates)
+
+### Build Process
+1. **Clone Repository**: Checks out code from GitHub
+2. **Cache Retrieval**: Loads cached dependencies if available
+3. **Backend Build** (if enabled):
+   - Installs root dependencies (`npm ci`)
+   - Runs `npx ampx pipeline-deploy`
+   - Synthesizes CDK stacks
+   - Deploys CloudFormation changes to DynamoDB, AppSync, Cognito, Lambda
+   - Generates `amplify_outputs.json`
+4. **Frontend Build**:
+   - Changes to `front/` directory (via `appRoot` setting)
+   - Installs frontend dependencies (`npm ci`)
+   - Runs TypeScript compilation and Vite build
+   - Outputs to `front/dist/`
+5. **Artifact Upload**: Uploads `dist/` contents to S3 and CloudFront
+6. **Cache**: Saves `node_modules` for next build
+
+### Environment Configuration
+- **Sandbox**: Each developer gets isolated sandbox via `npx ampx sandbox`
+  - Separate CloudFormation stacks
+  - Separate DynamoDB tables
+  - Does not affect production
+- **Production**: Single production environment deployed via Amplify Hosting
+  - Shared by all users
+  - Triggered by git push
+  - Managed by `pipeline-deploy`
+
+### Deployment History
+Deployment logs saved in `deployment-logs/` for troubleshooting:
+- `BUILD.txt`: Complete build output
+- `DEPLOY.txt`: Deployment status
 
 ## Architecture Decisions
 
