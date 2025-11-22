@@ -143,13 +143,13 @@ export function ProfilePage() {
               <p className="mt-1 text-xs text-slate-400">{set.phrases.length} phrases</p>
               <div className="mt-3 flex items-center justify-between gap-2">
                 <button
-                  className="rounded-full bg-teal-400 px-3 py-1 text-xs font-semibold text-slate-950 transition hover:bg-teal-300"
+                  className="rounded-full bg-teal-400 px-5 py-1 text-xs font-semibold text-slate-950 transition hover:bg-teal-300"
                   onClick={() => handleShare(set)}
                 >
                   {shareStatus[set.code] === 'copied' ? '✓ Copied' : shareStatus[set.code] === 'error' ? 'Error' : 'Share'}
                 </button>
                 <button
-                  className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-full border border-white/15 px-5 py-1 text-xs font-semibold text-white transition hover:bg-white/10"
                   onClick={() => setEditing(set)}
                 >
                   Edit
