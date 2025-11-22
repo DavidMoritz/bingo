@@ -298,7 +298,6 @@ export function CreatePage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Bingo: ${result.title}`,
           text: shareText,
         })
         setShareStatus('idle')

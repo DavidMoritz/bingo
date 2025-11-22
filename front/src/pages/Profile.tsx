@@ -84,7 +84,6 @@ export function ProfilePage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Bingo: ${set.title}`,
           text: shareText,
         })
         setShareStatus(prev => ({ ...prev, [set.code]: 'idle' }))
