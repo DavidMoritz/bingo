@@ -9,11 +9,10 @@ import { useUserInfo } from '../contexts/UserContext'
 import { hyphenate } from 'hyphen/en'
 
 // Hyphenate text with soft hyphens for better wrapping
-function hyphenateText(text: string): string {
-  return text
-    .split(' ')
-    .map(word => hyphenate(word))
-    .join(' ')
+async function hyphenateText(text: string): Promise<string> {
+  const words = text.split(' ')
+  const hyphenatedWords = await Promise.all(words.map(word => hyphenate(word)))
+  return hyphenatedWords.join(' ')
 }
 
 function useAutoFitText(text: string, containerRef: React.RefObject<HTMLElement>) {
@@ -307,8 +306,12 @@ type BingoCellProps = {
 
 function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
   const cellRef = useRef<HTMLButtonElement>(null)
-  const hyphenatedText = useMemo(() => hyphenateText(text), [text])
+  const [hyphenatedText, setHyphenatedText] = useState(text)
   const fontSize = useAutoFitText(text, cellRef)
+
+  useEffect(() => {
+    hyphenateText(text).then(setHyphenatedText)
+  }, [text])
 
   return (
     <button
