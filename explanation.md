@@ -231,7 +231,7 @@ The Express backend is **no longer used** and can be removed. All functionality 
 
 ### Seeded Templates
 12 phrase templates migrated from `src/suggestions/*.json`:
-- amusement, beach, city, birthday, christmas, 4th of july, mountain, office, parade, startup, wedding, zoo
+- amusement, beach, city, birthday, christmas, fireworks, mountain, office, parade, startup, wedding, zoo
 
 ### Future Enhancements
 

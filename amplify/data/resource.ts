@@ -1,4 +1,5 @@
 import { a, defineData } from '@aws-amplify/backend'
+import { generatePhrases } from '../functions/generate-phrases/resource'
 
 const schema = a.schema({
   Profile: a
@@ -68,6 +69,18 @@ const schema = a.schema({
     })
     .identifier(['id'])
     .authorization((allow) => [allow.publicApiKey()]),
+
+  generatePhrases: a
+    .query()
+    .arguments({ genre: a.string().required() })
+    .returns(
+      a.customType({
+        genre: a.string().required(),
+        phrases: a.string().array().required(),
+      })
+    )
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function(generatePhrases)),
 })
 
 export const data = defineData({

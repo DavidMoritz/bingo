@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
+import { useNavigate } from '@tanstack/react-router'
 import { createBingoBoard, toggleCell } from '../lib/bingo'
 import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnership, fetchUserRating } from '../lib/api'
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
@@ -13,6 +14,7 @@ type GamePageProps = {
 
 export function GamePage({ phraseSet, session }: GamePageProps) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { displayName } = useUserInfo()
   const { user } = useAuthenticator((context) => [context.user])
   const ownerProfileId =
@@ -147,6 +149,18 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
     }
   }
 
+  function handleRebuild() {
+    if (!currentSet) return
+    // Navigate to Create page with phrase set data encoded in URL
+    const params = new URLSearchParams({
+      title: currentSet.title,
+      phrases: currentSet.phrases.join('\n'),
+      isPublic: currentSet.isPublic.toString(),
+      freeSpace: currentSet.freeSpace.toString(),
+    })
+    navigate({ to: '/create', search: { rebuild: params.toString() } })
+  }
+
   if (!board || !currentSet) {
     return <p className="text-slate-200">Unable to load board.</p>
   }
@@ -224,17 +238,20 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-slate-300">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Phrases</p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {currentSet.phrases.map((p, idx) => (
-            <div
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200"
-              key={`${p}-${idx}`}
-            >
-              {p}
-            </div>
-          ))}
+      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Like this board?</p>
+            <p className="mt-1 text-sm text-slate-300">
+              Create your own version with custom phrases and settings
+            </p>
+          </div>
+          <button
+            onClick={handleRebuild}
+            className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Rebuild
+          </button>
         </div>
       </div>
     </div>

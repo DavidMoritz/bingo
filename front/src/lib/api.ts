@@ -96,7 +96,7 @@ export async function claimOwnership(code: string, ownerProfileId: string, owner
 
 export async function orphanPhraseSet(code: string, _ownerProfileId: string): Promise<PhraseSet> {
   const client = getDataClient()
-  const res = await client.models.PhraseSet.update({ code, ownerProfileId: 'guest' })
+  const res = await client.models.PhraseSet.update({ code, ownerProfileId: 'guest', ownerDisplayName: 'guest' })
   if (!res?.data) throw new Error('Failed to remove from profile')
   return res.data as PhraseSet
 }
@@ -183,9 +183,21 @@ export async function submitRating(
   return res.data as PhraseSet
 }
 
+export async function listAvailableGenres(): Promise<string[]> {
+  const client = getDataClient()
+  const res = await client.models.PhraseTemplate.list()
+  const templates = res?.data ?? []
+  return templates.map((t) => t.genre).sort()
+}
+
 export async function suggestPhrases(genre: string): Promise<string[]> {
   const client = getDataClient()
-  const normalizedGenre = genre.trim().toLowerCase()
+  // Use first word only for matching
+  const normalizedGenre = genre.trim().split(/\s+/)[0].toLowerCase()
+
+  if (!normalizedGenre) {
+    throw new Error('Please enter a genre keyword')
+  }
 
   // Search for existing template by genre (case-insensitive match)
   const res = await client.models.PhraseTemplate.list({
@@ -206,9 +218,47 @@ export async function suggestPhrases(genre: string): Promise<string[]> {
     return template.phrases
   }
 
-  // No template found - return empty for now
-  // TODO: In the future, call an AI generation function here
-  throw new Error(`No template found for "${genre}". Try "christmas", "tech-startup", or "unicorns".`)
+  // No template found - generate using AI (if credits available)
+  console.log(`No template found for "${normalizedGenre}", trying AI generation...`)
+
+  try {
+    const aiResult = await client.queries.generatePhrases({ genre: normalizedGenre })
+
+    console.log('AI Result:', aiResult)
+
+    if (!aiResult?.data) {
+      console.error('Full AI result:', JSON.stringify(aiResult, null, 2))
+
+      // Check if it's a billing/credit issue
+      const errorMessage = aiResult?.errors?.[0]?.message || ''
+      if (errorMessage.includes('400') || errorMessage.includes('insufficient')) {
+        const availableGenres = await listAvailableGenres()
+        throw new Error(
+          `AI generation requires Anthropic API credits. Available templates: ${availableGenres.join(', ')}`
+        )
+      }
+
+      throw new Error(`AI generation failed. Errors: ${JSON.stringify(aiResult?.errors)}`)
+    }
+
+    // Save the generated template for future use
+    await client.models.PhraseTemplate.create({
+      genre: aiResult.data.genre,
+      phrases: aiResult.data.phrases,
+      isAiGenerated: true,
+      usageCount: 1,
+    })
+
+    console.log(`✓ Generated and cached ${aiResult.data.phrases.length} phrases for "${normalizedGenre}"`)
+    return aiResult.data.phrases
+  } catch (error) {
+    console.error('AI generation failed:', error)
+    // Fallback: show available genres
+    const availableGenres = await listAvailableGenres()
+    throw new Error(
+      `Genre "${normalizedGenre}" not found. Available: ${availableGenres.join(', ')}`
+    )
+  }
 }
 
 export async function createPlaySession(input: {
@@ -269,5 +319,12 @@ export async function fetchMySessions(profileId: string): Promise<PlaySession[]>
     filter: profileId ? { profileId: { eq: profileId } } : undefined,
   })
   console.log('fetchMySessions response:', res)
-  return (res?.data?.map(parsePlaySession) as PlaySession[]) ?? []
+  const sessions = (res?.data?.map(parsePlaySession) as PlaySession[]) ?? []
+
+  // Sort by createdAt descending (newest first)
+  return sessions.sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime()
+    const dateB = new Date(b.createdAt).getTime()
+    return dateB - dateA
+  })
 }

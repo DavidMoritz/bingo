@@ -569,7 +569,46 @@
         }
       },
       "enums": {},
-      "nonModels": {}
+      "nonModels": {
+        "GeneratePhrasesReturnType": {
+          "name": "GeneratePhrasesReturnType",
+          "fields": {
+            "genre": {
+              "name": "genre",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "phrases": {
+              "name": "phrases",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        }
+      },
+      "queries": {
+        "generatePhrases": {
+          "name": "generatePhrases",
+          "isArray": false,
+          "type": {
+            "nonModel": "GeneratePhrasesReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "genre": {
+              "name": "genre",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.4"

@@ -94,8 +94,6 @@ export function JoinPage() {
               </div>
               <p className="line-clamp-2 text-xs text-slate-400">{set.phrases.slice(0, 3).join(' · ')}</p>
               <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                <span>{set.phrases.length} phrases</span>
-                <span>•</span>
                 <span>{new Date(set.createdAt).toLocaleDateString()}</span>
                 <span>•</span>
                 <span className="text-amber-300">

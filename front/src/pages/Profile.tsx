@@ -224,22 +224,26 @@ export function ProfilePage() {
           <h3 className="text-xl font-semibold text-white">Play sessions</h3>
         </header>
         <div className="grid gap-3 sm:grid-cols-3">
-          {(sessions ?? []).map((s: PlaySession) => (
-            <a
-              href={`/session/${s.id}`}
-              key={s.id}
-              className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">{s.phraseSetTitle || s.phraseSetCode}</span>
-                <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">#{s.gridSize}x{s.gridSize}</span>
-              </div>
-              <p className="mt-1 text-xs text-slate-400">
-                {new Date(s.createdAt).toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">{s.checkedCells.length} checked</p>
-            </a>
-          ))}
+          {(sessions ?? []).map((s: PlaySession) => {
+            const totalCells = s.gridSize * s.gridSize
+            return (
+              <a
+                href={`/session/${s.id}`}
+                key={s.id}
+                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-white">{s.phraseSetTitle || s.phraseSetCode}</span>
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">
+                    {s.checkedCells.length}/{totalCells}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  {new Date(s.createdAt).toLocaleString()}
+                </p>
+              </a>
+            )
+          })}
         </div>
       </section>
     </div>
