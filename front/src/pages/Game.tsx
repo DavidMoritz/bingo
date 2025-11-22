@@ -304,12 +304,13 @@ function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
     <button
       ref={cellRef}
       onClick={onClick}
+      lang="en"
       className={`flex min-h-[90px] items-center justify-center overflow-hidden rounded-2xl border px-2 py-3 text-center font-semibold leading-tight transition ${
         selected
           ? 'border-teal-300 bg-teal-400 text-slate-950 shadow-lg shadow-teal-400/40'
           : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10'
       } ${isFree ? 'ring-2 ring-amber-300/70' : ''}`}
-      style={{ fontSize: `${fontSize}px` }}
+      style={{ fontSize: `${fontSize}px`, hyphens: 'auto', WebkitHyphens: 'auto' }}
     >
       <span className="break-words">{text}</span>
     </button>
