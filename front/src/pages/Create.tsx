@@ -3,8 +3,10 @@ import { useState } from 'react'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { createPhraseSet, suggestPhrases } from '../lib/api'
 import type { PhraseSet } from '../types'
+import { useUserInfo } from '../contexts/UserContext'
 
 export function CreatePage() {
+  const { displayName } = useUserInfo()
   const { user } = useAuthenticator((context) => [context.user])
   const ownerProfileId =
     (user as any)?.attributes?.sub ||
@@ -33,6 +35,7 @@ export function CreatePage() {
       isPublic: boolean
       freeSpace: boolean
       ownerProfileId: string
+      ownerDisplayName?: string
     }) => createPhraseSet(input),
     onSuccess: (data) => setResult(data),
   })
@@ -80,8 +83,10 @@ export function CreatePage() {
         isPublic,
         freeSpace: effectiveFreeSpace,
         ownerProfileId,
+        ownerDisplayName: displayName || undefined,
       })
     } catch {
+      console.log('Error creating phrase set')
       // handled by mutation.error
     }
   }

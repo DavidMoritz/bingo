@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { createBingoBoard, toggleCell } from '../lib/bingo'
-import { ratePhraseSet, createPlaySession, updatePlaySessionChecked, claimOwnership } from '../lib/api'
+import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnership, fetchUserRating } from '../lib/api'
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
+import { useUserInfo } from '../contexts/UserContext'
 
 type GamePageProps = {
   phraseSet: PhraseSet | null
@@ -11,6 +12,8 @@ type GamePageProps = {
 }
 
 export function GamePage({ phraseSet, session }: GamePageProps) {
+  const queryClient = useQueryClient()
+  const { displayName } = useUserInfo()
   const { user } = useAuthenticator((context) => [context.user])
   const ownerProfileId =
     (user as any)?.attributes?.sub ||
@@ -19,22 +22,6 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
     user?.username ||
     user?.userId ||
     ''
-
-  const sessionBoard =
-    session && phraseSet === null
-      ? {
-          code: session.phraseSetCode,
-          title: session.phraseSetTitle ?? session.phraseSetCode,
-          gridSize: session.gridSize,
-          usesFreeCenter: session.usesFreeCenter,
-          cells: session.boardSnapshot.map((snapshot, idx) => ({
-            id: `cell-${idx}`,
-            text: snapshot.text,
-            isFree: snapshot.isFree,
-            selected: session.checkedCells.includes(idx),
-          })),
-        }
-      : null
 
   const initialPhraseSet: PhraseSet | null =
     phraseSet ??
@@ -50,23 +37,49 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           ratingCount: 0,
           ratingAverage: 0,
           ownerProfileId: 'guest',
+          ownerDisplayName: undefined,
         }
       : null)
 
-  const [board, setBoard] = useState<BingoBoard | null>(
-    sessionBoard ?? (initialPhraseSet ? createBingoBoard(initialPhraseSet, initialPhraseSet.freeSpace) : null)
-  )
+  // Create initial board: use session snapshot if available, otherwise generate new board
+  const initialBoard = session
+    ? {
+        code: session.phraseSetCode,
+        title: session.phraseSetTitle ?? session.phraseSetCode,
+        gridSize: session.gridSize,
+        usesFreeCenter: session.usesFreeCenter,
+        cells: session.boardSnapshot.map((snapshot, idx) => ({
+          id: `cell-${idx}`,
+          text: snapshot.text,
+          isFree: snapshot.isFree,
+          selected: session.checkedCells.includes(idx),
+        })),
+      }
+    : initialPhraseSet
+    ? createBingoBoard(initialPhraseSet, initialPhraseSet.freeSpace)
+    : null
+
+  const [board, setBoard] = useState<BingoBoard | null>(initialBoard)
   const [currentSet, setCurrentSet] = useState<PhraseSet | null>(initialPhraseSet)
-  const [myRating, setMyRating] = useState<number | null>(null)
-  const [hasRated, setHasRated] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(session?.id ?? null)
   const hasCreatedSession = useRef(false)
+
+  // Fetch existing rating for this user and phrase set
+  const { data: existingRating } = useQuery({
+    queryKey: ['user-rating', ownerProfileId, currentSet?.code],
+    queryFn: () => fetchUserRating(ownerProfileId, currentSet!.code),
+    enabled: Boolean(ownerProfileId && currentSet),
+  })
 
   const selectedCount = useMemo(() => (board ? board.cells.filter((c) => c.selected).length : 0), [board])
 
   useEffect(() => {
     async function ensureSession() {
       if (!board || !currentSet || sessionId || !ownerProfileId || hasCreatedSession.current) return
+
+      // Set flag BEFORE async operation to prevent race condition in StrictMode
+      hasCreatedSession.current = true
+
       try {
         const created = await createPlaySession({
           profileId: ownerProfileId,
@@ -78,9 +91,9 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           checkedCells: board.cells.map((c, idx) => (c.selected ? idx : -1)).filter((idx) => idx >= 0),
         })
         setSessionId(created.id)
-        hasCreatedSession.current = true
       } catch {
-        // ignore create errors
+        // Reset flag on error so user can retry
+        hasCreatedSession.current = false
       }
     }
     ensureSession()
@@ -112,22 +125,22 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   }
 
   const ratingMutation = useMutation({
-    mutationFn: (rating: number) => ratePhraseSet(currentSet!.code, rating),
+    mutationFn: (rating: number) => submitRating(ownerProfileId, currentSet!.code, rating, sessionId || undefined),
     onSuccess: (updated) => {
       setCurrentSet(updated)
-      setHasRated(true)
+      // Invalidate the user rating query to refetch and show "Thank you" message
+      queryClient.invalidateQueries({ queryKey: ['user-rating', ownerProfileId, currentSet?.code] })
     },
   })
 
-  function submitRating(value: number) {
-    setMyRating(value)
-    if (currentSet) ratingMutation.mutate(value)
+  function handleSubmitRating(value: number) {
+    if (currentSet && ownerProfileId) ratingMutation.mutate(value)
   }
 
   async function handleClaimOwnership() {
     if (!currentSet || !ownerProfileId) return
     try {
-      const updated = await claimOwnership(currentSet.code, ownerProfileId)
+      const updated = await claimOwnership(currentSet.code, ownerProfileId, displayName || undefined)
       setCurrentSet(updated)
     } catch {
       // ignore claim errors
@@ -137,7 +150,6 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   if (!board || !currentSet) {
     return <p className="text-slate-200">Unable to load board.</p>
   }
-  console.log(currentSet, ownerProfileId);
 
   return (
     <div className="space-y-6">
@@ -151,25 +163,27 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           </p>
           <p className="text-xs text-slate-400">
             Created by:{' '}
-            {currentSet.ownerProfileId && currentSet.ownerProfileId !== 'guest'
-              ? currentSet.ownerProfileId
+            {currentSet.ownerDisplayName
+              ? currentSet.ownerDisplayName
+              : currentSet.ownerProfileId !== 'guest'
+              ? 'Anonymous user'
               : 'guest'}
             {ownerProfileId && currentSet.ownerProfileId === 'guest' ? (
               <button
                 className="ml-2 text-teal-300 underline"
                 onClick={handleClaimOwnership}
               >
-                (Click to claim ownership)
+                Click to claim ownership
               </button>
             ) : null}
           </p>
           <div className="mt-2 flex items-center gap-3 text-sm text-slate-200">
-            {hasRated ? (
+            {existingRating ? (
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-teal-200">
                 Thank you for your feedback!
               </span>
             ) : (
-              <StarRating value={currentSet.ratingAverage} onRate={submitRating} userValue={myRating} />
+              <StarRating value={currentSet.ratingAverage} onRate={handleSubmitRating} userValue={existingRating?.ratingValue ?? null} />
             )}
             <span className="text-xs text-slate-400">
               {currentSet.ratingAverage.toFixed(2)} ({currentSet.ratingCount} ratings)

@@ -58,6 +58,7 @@ export function ProfilePage() {
         isPublic,
         freeSpace,
         ownerProfileId,
+        ownerDisplayName: displayName || undefined,
       }),
     onSuccess: () => {
       setEditing(null)

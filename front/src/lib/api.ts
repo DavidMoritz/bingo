@@ -1,6 +1,33 @@
+import { Amplify } from 'aws-amplify'
+import { generateClient } from 'aws-amplify/data'
 import type { PhraseSet, PlaySession } from '../types'
+import outputs from '../amplify_outputs.json'
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+let dataClient: any
+
+function generateCode(length = 6): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const chars: string[] = []
+  const array = new Uint8Array(length)
+  crypto.getRandomValues(array)
+
+  for (let i = 0; i < length; i++) {
+    chars.push(alphabet[array[i] % alphabet.length])
+  }
+
+  return chars.join('')
+}
+
+function getDataClient() {
+  if (dataClient) return dataClient
+  Amplify.configure(outputs as any)
+  const client = generateClient<any>({
+    authMode: 'apiKey',
+  })
+  dataClient = client as any
+  return dataClient
+}
+const SUGGEST_API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export async function createPhraseSet(input: {
   title: string
@@ -8,39 +35,35 @@ export async function createPhraseSet(input: {
   isPublic: boolean
   freeSpace: boolean
   ownerProfileId: string
+  ownerDisplayName?: string
 }): Promise<PhraseSet> {
-  const response = await fetch(`${API_BASE}/phrase-sets`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+  const client = getDataClient()
+  const code = generateCode()
+  const res = await client.models.PhraseSet.create({
+    code,
+    ...input,
+    ratingTotal: 0,
+    ratingCount: 0,
+    ratingAverage: 0,
   })
-
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to create phrase set')
-  }
-
-  return response.json()
+  console.log('createPhraseSet response:', res);
+  if (!res?.data) throw new Error('Failed to create phrase set')
+  return res.data as PhraseSet
 }
 
 export async function fetchPhraseSet(code: string): Promise<PhraseSet> {
-  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}`)
-
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Phrase set not found')
-  }
-
-  return response.json()
+  const client = getDataClient()
+  const res = await client.models.PhraseSet.get({ code })
+  if (!res?.data) throw new Error('Phrase set not found')
+  return res.data as PhraseSet
 }
 
 export async function fetchMyPhraseSets(ownerProfileId: string): Promise<PhraseSet[]> {
-  const url = new URL(`${API_BASE}/phrase-sets`)
-  url.searchParams.set('owner', ownerProfileId)
-  const response = await fetch(url.toString())
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to load phrase sets')
-  }
-  const data = (await response.json()) as { items?: PhraseSet[] }
-  return data.items ?? []
+  const client = getDataClient()
+  const res = await client.models.PhraseSet.list({
+    filter: ownerProfileId ? { ownerProfileId: { eq: ownerProfileId } } : undefined,
+  })
+  return (res?.data as PhraseSet[]) ?? []
 }
 
 export async function updatePhraseSet(
@@ -51,100 +74,141 @@ export async function updatePhraseSet(
     isPublic: boolean
     freeSpace: boolean
     ownerProfileId: string
+    ownerDisplayName?: string
   }
 ): Promise<PhraseSet> {
-  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to update phrase set')
-  }
-  return response.json()
+  const client = getDataClient()
+  const res = await client.models.PhraseSet.update({ code, ...input })
+  if (!res?.data) throw new Error('Failed to update phrase set')
+  return res.data as PhraseSet
 }
 
-export async function claimOwnership(code: string, ownerProfileId: string): Promise<PhraseSet> {
-  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ownerProfileId }),
+export async function claimOwnership(code: string, ownerProfileId: string, ownerDisplayName?: string): Promise<PhraseSet> {
+  const client = getDataClient()
+  const res = await client.models.PhraseSet.update({
+    code,
+    ownerProfileId,
+    ownerDisplayName: ownerDisplayName || undefined,
   })
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to claim ownership')
-  }
-  return response.json()
+  if (!res?.data) throw new Error('Failed to claim ownership')
+  return res.data as PhraseSet
 }
 
-export async function orphanPhraseSet(code: string, ownerProfileId: string): Promise<PhraseSet> {
-  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}/orphan`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ownerProfileId }),
-  })
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to remove from profile')
-  }
-  return response.json()
+export async function orphanPhraseSet(code: string, _ownerProfileId: string): Promise<PhraseSet> {
+  const client = getDataClient()
+  const res = await client.models.PhraseSet.update({ code, ownerProfileId: 'guest' })
+  if (!res?.data) throw new Error('Failed to remove from profile')
+  return res.data as PhraseSet
 }
 
 export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]> {
-  const url = new URL(`${API_BASE}/phrase-sets/public`)
+  const filter: any = { isPublic: { eq: true } }
   if (query.trim()) {
-    url.searchParams.set('q', query.trim())
+    filter.or = [
+      { title: { contains: query } },
+      { code: { contains: query } },
+      // phrases array contains not supported; skip
+    ]
   }
-
-  const response = await fetch(url.toString())
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to load public phrase sets')
-  }
-
-  const data = (await response.json()) as { items?: PhraseSet[] }
-  if (!Array.isArray(data.items)) return []
-  return data.items
+  const client = getDataClient()
+  const res = await client.models.PhraseSet.list({ filter })
+  return (res?.data as PhraseSet[]) ?? []
 }
 
-export async function ratePhraseSet(code: string, rating: number): Promise<PhraseSet> {
-  const response = await fetch(`${API_BASE}/phrase-sets/${encodeURIComponent(code)}/rate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rating }),
+export async function fetchUserRating(profileId: string, phraseSetCode: string): Promise<{ id: string; ratingValue: number } | null> {
+  const client = getDataClient()
+  const res = await client.models.Rating.list({
+    filter: {
+      profileId: { eq: profileId },
+      phraseSetCode: { eq: phraseSetCode },
+    },
   })
 
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to submit rating')
+  const ratings = res?.data ?? []
+  return ratings.length > 0 ? { id: ratings[0].id, ratingValue: ratings[0].ratingValue } : null
+}
+
+export async function submitRating(
+  profileId: string,
+  phraseSetCode: string,
+  ratingValue: number,
+  sessionId?: string
+): Promise<PhraseSet> {
+  const client = getDataClient()
+  const current = await fetchPhraseSet(phraseSetCode)
+  const existingRating = await fetchUserRating(profileId, phraseSetCode)
+
+  let ratingTotal: number
+  let ratingCount: number
+
+  if (existingRating) {
+    // Update existing rating
+    await client.models.Rating.update({
+      id: existingRating.id,
+      ratingValue,
+      lastSessionId: sessionId,
+    })
+    // Adjust totals: remove old rating, add new rating
+    ratingTotal = current.ratingTotal - existingRating.ratingValue + ratingValue
+    ratingCount = current.ratingCount
+  } else {
+    // Create new rating
+    await client.models.Rating.create({
+      profileId,
+      phraseSetCode,
+      ratingValue,
+      lastSessionId: sessionId,
+    })
+    // Add to totals
+    ratingTotal = current.ratingTotal + ratingValue
+    ratingCount = current.ratingCount + 1
   }
 
-  return response.json()
+  const ratingAverage = Number((ratingTotal / ratingCount).toFixed(2))
+
+  const res = await client.models.PhraseSet.update({
+    code: phraseSetCode,
+    title: current.title,
+    phrases: current.phrases,
+    isPublic: current.isPublic,
+    freeSpace: current.freeSpace,
+    ownerProfileId: current.ownerProfileId,
+    ownerDisplayName: current.ownerDisplayName,
+    ratingTotal,
+    ratingCount,
+    ratingAverage,
+  })
+
+  if (!res?.data) throw new Error('Failed to submit rating')
+  return res.data as PhraseSet
 }
 
 export async function suggestPhrases(genre: string): Promise<string[]> {
-  const response = await fetch(`${API_BASE}/phrase-suggestions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ genre }),
+  const client = getDataClient()
+  const normalizedGenre = genre.trim().toLowerCase()
+
+  // Search for existing template by genre (case-insensitive match)
+  const res = await client.models.PhraseTemplate.list({
+    filter: {
+      genre: { eq: normalizedGenre },
+    },
   })
 
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to suggest phrases')
+  const templates = res?.data ?? []
+
+  if (templates.length > 0) {
+    // Use existing template and increment usage count
+    const template = templates[0]
+    await client.models.PhraseTemplate.update({
+      id: template.id,
+      usageCount: (template.usageCount || 0) + 1,
+    })
+    return template.phrases
   }
 
-  const data = (await response.json()) as { phrases?: string[] }
-  if (!data.phrases || !Array.isArray(data.phrases)) {
-    throw new Error('Unexpected suggestion response')
-  }
-
-  return data.phrases
-}
-
-async function safeError(response: Response): Promise<string | null> {
-  try {
-    const data = await response.json()
-    if (typeof data?.error === 'string') return data.error
-  } catch {
-    // ignore parse errors
-  }
-  return null
+  // No template found - return empty for now
+  // TODO: In the future, call an AI generation function here
+  throw new Error(`No template found for "${genre}". Try "christmas", "tech-startup", or "unicorns".`)
 }
 
 export async function createPlaySession(input: {
@@ -156,47 +220,54 @@ export async function createPlaySession(input: {
   boardSnapshot: { text: string; isFree?: boolean }[]
   checkedCells: number[]
 }): Promise<PlaySession> {
-  const response = await fetch(`${API_BASE}/play-sessions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+  const client = getDataClient()
+  console.log('Creating PlaySession with input:', input)
+  const res = await client.models.PlaySession.create({
+    ...input,
+    boardSnapshot: JSON.stringify(input.boardSnapshot),
   })
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to create session')
-  }
-  return response.json()
+  console.log('PlaySession creation response:', res)
+  if (!res?.data) throw new Error('Failed to create session')
+  return res.data as PlaySession
 }
 
 export async function updatePlaySessionChecked(
   id: string,
   input: { profileId: string; checkedCells: number[] }
 ): Promise<PlaySession> {
-  const response = await fetch(`${API_BASE}/play-sessions/${encodeURIComponent(id)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+  const client = getDataClient()
+  const res = await client.models.PlaySession.update({
+    id,
+    profileId: input.profileId,
+    checkedCells: input.checkedCells,
   })
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to update session')
+  if (!res?.data) throw new Error('Failed to update session')
+  return res.data as PlaySession
+}
+
+function parsePlaySession(raw: any): PlaySession {
+  return {
+    ...raw,
+    boardSnapshot: typeof raw.boardSnapshot === 'string'
+      ? JSON.parse(raw.boardSnapshot)
+      : raw.boardSnapshot,
+    checkedCells: raw.checkedCells ?? [],
   }
-  return response.json()
 }
 
 export async function fetchPlaySession(id: string): Promise<PlaySession> {
-  const response = await fetch(`${API_BASE}/play-sessions/${encodeURIComponent(id)}`)
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Session not found')
-  }
-  return response.json()
+  const client = getDataClient()
+  const res = await client.models.PlaySession.get({ id })
+  if (!res?.data) throw new Error('Session not found')
+  return parsePlaySession(res.data)
 }
 
 export async function fetchMySessions(profileId: string): Promise<PlaySession[]> {
-  const url = new URL(`${API_BASE}/play-sessions`)
-  url.searchParams.set('profileId', profileId)
-  const response = await fetch(url.toString())
-  if (!response.ok) {
-    throw new Error((await safeError(response)) ?? 'Failed to load sessions')
-  }
-  const data = (await response.json()) as { items?: PlaySession[] }
-  return data.items ?? []
+  const client = getDataClient()
+  console.log('Fetching sessions for profileId:', profileId)
+  const res = await client.models.PlaySession.list({
+    filter: profileId ? { profileId: { eq: profileId } } : undefined,
+  })
+  console.log('fetchMySessions response:', res)
+  return (res?.data?.map(parsePlaySession) as PlaySession[]) ?? []
 }

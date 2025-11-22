@@ -7,9 +7,11 @@
     "dev": "tsx watch src/server.ts",
     "start": "node -r ts-node/register src/server.ts",
     "build": "tsc --project tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed-templates": "tsx scripts/seed-templates.ts"
   },
   "dependencies": {
+    "aws-amplify": "^6.11.3",
     "cors": "^2.8.5",
     "express": "^4.19.2"
   },
