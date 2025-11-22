@@ -41,3 +41,8 @@ Set `VITE_API_URL` in `front` if the API isn’t on `http://localhost:3000`.
 ## Notes
 - Data/rates are in-memory; restart clears them.
 - To add more suggestion templates, drop JSON files in `src/suggestions/`.
+
+## TODO:
+If a guest player (not logged in) is playing a board, we should be saving their state in LocalStorage so that if they refresh the screen, the session is preserved.
+Instead of "Like this board", the bottom should suggest signing up in order to save your progress.
+Sign in/up should not break the current game being played, merely assign a PlaySession to the current data.
