@@ -35,6 +35,7 @@ export function ProfilePage() {
   const [phrasesText, setPhrasesText] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [freeSpace, setFreeSpace] = useState(true)
+  const [shareStatus, setShareStatus] = useState<Record<string, 'idle' | 'copied' | 'error'>>({})
 
   useEffect(() => {
     if (editing) {
@@ -75,6 +76,42 @@ export function ProfilePage() {
     },
   })
 
+  async function handleShare(set: PhraseSet) {
+    const shareUrl = `${window.location.origin}/game/${set.code}`
+    const shareText = `I created a bingo card called "${set.title}" - want to play? 🎲`
+    const shareData = {
+      title: `Bingo: ${set.title}`,
+      text: shareText,
+      url: shareUrl,
+    }
+
+    // Try Web Share API first (native share on mobile/desktop)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+        setShareStatus(prev => ({ ...prev, [set.code]: 'idle' }))
+      } catch (err) {
+        // User cancelled or error occurred
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share failed:', err)
+          setShareStatus(prev => ({ ...prev, [set.code]: 'error' }))
+          setTimeout(() => setShareStatus(prev => ({ ...prev, [set.code]: 'idle' })), 2000)
+        }
+      }
+    } else {
+      // Fallback: copy link to clipboard with message
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`)
+        setShareStatus(prev => ({ ...prev, [set.code]: 'copied' }))
+        setTimeout(() => setShareStatus(prev => ({ ...prev, [set.code]: 'idle' })), 2000)
+      } catch (err) {
+        console.error('Copy failed:', err)
+        setShareStatus(prev => ({ ...prev, [set.code]: 'error' }))
+        setTimeout(() => setShareStatus(prev => ({ ...prev, [set.code]: 'idle' })), 2000)
+      }
+    }
+  }
+
   if (!user || !ownerProfileId) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200">
@@ -104,12 +141,20 @@ export function ProfilePage() {
                 <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">{set.code}</span>
               </div>
               <p className="mt-1 text-xs text-slate-400">{set.phrases.length} phrases</p>
-              <button
-                className="mt-3 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/10"
-                onClick={() => setEditing(set)}
-              >
-                Edit
-              </button>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <button
+                  className="rounded-full bg-teal-400 px-3 py-1 text-xs font-semibold text-slate-950 transition hover:bg-teal-300"
+                  onClick={() => handleShare(set)}
+                >
+                  {shareStatus[set.code] === 'copied' ? '✓ Copied' : shareStatus[set.code] === 'error' ? 'Error' : 'Share'}
+                </button>
+                <button
+                  className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/10"
+                  onClick={() => setEditing(set)}
+                >
+                  Edit
+                </button>
+              </div>
             </div>
           ))}
         </div>
