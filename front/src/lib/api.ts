@@ -101,7 +101,7 @@ export async function orphanPhraseSet(code: string, _ownerProfileId: string): Pr
   return res.data as PhraseSet
 }
 
-const sortSetsByBayesianScore = (sets: PhraseSet[]): PhraseSet[] => {
+export const sortSetsByBayesianScore = (sets: PhraseSet[]): PhraseSet[] => {
   // 1. Calculate global average rating 'm'
   const ratedSets = sets.filter((s) => s.ratingCount > 0)
 

@@ -43,9 +43,9 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
         }
       : null)
 
-  // Create initial board: use session snapshot if available, otherwise generate new board
-  const initialBoard = session
-    ? {
+  const [board, setBoard] = useState<BingoBoard | null>(() => {
+    if (session) {
+      return {
         code: session.phraseSetCode,
         title: session.phraseSetTitle ?? session.phraseSetCode,
         gridSize: session.gridSize,
@@ -57,11 +57,9 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           selected: session.checkedCells.includes(idx),
         })),
       }
-    : initialPhraseSet
-    ? createBingoBoard(initialPhraseSet, initialPhraseSet.freeSpace)
-    : null
-
-  const [board, setBoard] = useState<BingoBoard | null>(initialBoard)
+    }
+    return initialPhraseSet ? createBingoBoard(initialPhraseSet, initialPhraseSet.freeSpace) : null
+  });
   const [currentSet, setCurrentSet] = useState<PhraseSet | null>(initialPhraseSet)
   const [sessionId, setSessionId] = useState<string | null>(session?.id ?? null)
   const hasCreatedSession = useRef(false)

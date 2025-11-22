@@ -301,7 +301,7 @@ export function CreatePage() {
           </span>
         </header>
 
-        <form onSubmit={handleSuggest} className="mb-4 space-y-3">
+        <form onSubmit={handleSuggest} className="mb-4 space-y-3" aria-label="Suggest Phrases Form">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="genre">
               Genre (one word)
@@ -376,7 +376,7 @@ export function CreatePage() {
           </div>
         </form>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" aria-label="Create Phrase Set Form">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="title">
               Title
