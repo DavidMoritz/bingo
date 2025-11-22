@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useNavigate } from '@tanstack/react-router'
@@ -6,6 +6,43 @@ import { createBingoBoard, toggleCell } from '../lib/bingo'
 import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnership, fetchUserRating } from '../lib/api'
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
+
+function useAutoFitText(text: string, containerRef: React.RefObject<HTMLElement>) {
+  const [fontSize, setFontSize] = useState(14)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const measure = () => {
+      const maxWidth = container.clientWidth - 16 // padding
+      const maxHeight = container.clientHeight - 24 // padding
+
+      let size = 20
+      let fits = false
+
+      while (size > 8 && !fits) {
+        container.style.fontSize = `${size}px`
+        const textWidth = container.scrollWidth - 16
+        const textHeight = container.scrollHeight - 24
+
+        if (textWidth <= maxWidth && textHeight <= maxHeight) {
+          fits = true
+        } else {
+          size -= 1
+        }
+      }
+
+      setFontSize(size)
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [text, containerRef])
+
+  return fontSize
+}
 
 type GamePageProps = {
   phraseSet: PhraseSet | null
@@ -222,17 +259,13 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
         style={{ gridTemplateColumns: `repeat(${board.gridSize}, minmax(0, 1fr))` }}
       >
         {board.cells.map((cell) => (
-          <button
+          <BingoCell
             key={cell.id}
+            text={cell.text || '…'}
+            selected={cell.selected}
+            isFree={cell.isFree}
             onClick={() => handleCellClick(cell.id)}
-            className={`flex min-h-[90px] items-center justify-center rounded-2xl border px-2 py-3 text-center text-sm font-semibold transition ${
-              cell.selected
-                ? 'border-teal-300 bg-teal-400 text-slate-950 shadow-lg shadow-teal-400/40'
-                : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10'
-            } ${cell.isFree ? 'ring-2 ring-amber-300/70' : ''}`}
-          >
-            {cell.text || '…'}
-          </button>
+          />
         ))}
       </div>
 
@@ -253,6 +286,33 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+type BingoCellProps = {
+  text: string
+  selected: boolean
+  isFree: boolean
+  onClick: () => void
+}
+
+function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
+  const cellRef = useRef<HTMLButtonElement>(null)
+  const fontSize = useAutoFitText(text, cellRef)
+
+  return (
+    <button
+      ref={cellRef}
+      onClick={onClick}
+      className={`flex min-h-[90px] items-center justify-center overflow-hidden rounded-2xl border px-2 py-3 text-center font-semibold leading-tight transition ${
+        selected
+          ? 'border-teal-300 bg-teal-400 text-slate-950 shadow-lg shadow-teal-400/40'
+          : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10'
+      } ${isFree ? 'ring-2 ring-amber-300/70' : ''}`}
+      style={{ fontSize: `${fontSize}px` }}
+    >
+      <span className="break-words">{text}</span>
+    </button>
   )
 }
 
