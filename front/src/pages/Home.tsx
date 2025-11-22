@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router'
 
 const featureCards = [
-  { title: 'Create', description: 'Craft a phrase set and generate a shareable code.' },
-  { title: 'Join', description: 'Enter a code to spawn a fresh 5×5 bingo board.' },
-  { title: 'Play', description: 'Tap cells to track the chaos—center FREE spot included.' },
+  { title: 'Create', description: '⚡ Spark a game in seconds—instant codes, zero hassle.' },
+  { title: 'Join', description: '⚡ Punch in a code, get your board. Lightning fast.' },
+  { title: 'Play', description: '⚡ Tap to win. Track the action with instant feedback.' },
 ]
 
 export function HomePage() {
@@ -16,11 +16,10 @@ export function HomePage() {
               Vite + TanStack Router + Tailwind
             </p>
             <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl">
-              Build and share custom bingo boards in seconds.
+              Lightning-fast custom bingo boards. Share in a flash.
             </h1>
             <p className="text-lg text-slate-200">
-              Drop in a title, paste your phrases, and share the code. Players join, get a randomized
-              board, and mark squares as the game unfolds.
+              Customize your clues, generate a code, and you're live. Players instantly join with randomized boards—no setup, just play.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
