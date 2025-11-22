@@ -27,7 +27,7 @@ function getDataClient() {
   dataClient = client as any
   return dataClient
 }
-const SUGGEST_API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
 
 export async function createPhraseSet(input: {
   title: string
@@ -102,17 +102,28 @@ export async function orphanPhraseSet(code: string, _ownerProfileId: string): Pr
 }
 
 export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]> {
-  const filter: any = { isPublic: { eq: true } }
-  if (query.trim()) {
-    filter.or = [
-      { title: { contains: query } },
-      { code: { contains: query } },
-      // phrases array contains not supported; skip
-    ]
-  }
   const client = getDataClient()
+
+  // Fetch all public phrase sets
+  const filter = { isPublic: { eq: true } }
   const res = await client.models.PhraseSet.list({ filter })
-  return (res?.data as PhraseSet[]) ?? []
+  const allPublicSets = (res?.data as PhraseSet[]) ?? []
+
+  // If no query, return all public sets
+  if (!query.trim()) {
+    return allPublicSets
+  }
+
+  // Client-side fuzzy search (case-insensitive)
+  const lowerQuery = query.trim().toLowerCase()
+  return allPublicSets.filter((set) => {
+    const lowerTitle = set.title.toLowerCase()
+    const lowerCode = set.code.toLowerCase()
+    const hasMatchingPhrase = set.phrases.some((phrase) => phrase.toLowerCase().includes(lowerQuery))
+
+    // Check if query is contained in title, code, or any phrases
+    return lowerTitle.includes(lowerQuery) || lowerCode.includes(lowerQuery) || hasMatchingPhrase
+  })
 }
 
 export async function fetchUserRating(profileId: string, phraseSetCode: string): Promise<{ id: string; ratingValue: number } | null> {
@@ -187,7 +198,7 @@ export async function listAvailableGenres(): Promise<string[]> {
   const client = getDataClient()
   const res = await client.models.PhraseTemplate.list()
   const templates = res?.data ?? []
-  return templates.map((t) => t.genre).sort()
+  return templates.map((t: { genre: string }) => t.genre).sort()
 }
 
 export async function suggestPhrases(genre: string): Promise<string[]> {

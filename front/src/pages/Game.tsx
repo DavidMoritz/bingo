@@ -67,7 +67,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   const hasCreatedSession = useRef(false)
 
   // Fetch existing rating for this user and phrase set
-  const { data: existingRating } = useQuery({
+  const { data: existingRating } = useQuery<{ id: string; ratingValue: number } | null>({
     queryKey: ['user-rating', ownerProfileId, currentSet?.code],
     queryFn: () => fetchUserRating(ownerProfileId, currentSet!.code),
     enabled: Boolean(ownerProfileId && currentSet),
@@ -197,7 +197,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
                 Thank you for your feedback!
               </span>
             ) : (
-              <StarRating value={currentSet.ratingAverage} onRate={handleSubmitRating} userValue={existingRating?.ratingValue ?? null} />
+              <StarRating value={currentSet.ratingAverage} onRate={handleSubmitRating} userValue={(existingRating as any)?.ratingValue ?? null} />
             )}
             <span className="text-xs text-slate-400">
               {currentSet.ratingAverage.toFixed(2)} ({currentSet.ratingCount} ratings)
