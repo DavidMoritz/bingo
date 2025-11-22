@@ -69,6 +69,7 @@ export function CreatePage() {
   const [result, setResult] = useState<PhraseSet | null>(null)
   const [showPhraseHelp, setShowPhraseHelp] = useState(false)
   const [isPhraseDirty, setIsPhraseDirty] = useState(false)
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle')
 
   const mutation = useMutation({
     mutationFn: (input: {
@@ -287,6 +288,42 @@ export function CreatePage() {
     return combined.slice(0, limit)
   }
 
+  async function handleShare() {
+    if (!result) return
+
+    const shareUrl = `${window.location.origin}/game/${result.code}`
+    const shareData = {
+      title: result.title,
+      text: `Join my bingo game: ${result.title}`,
+      url: shareUrl,
+    }
+
+    // Try Web Share API first (native share on mobile/desktop)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+        setShareStatus('idle')
+      } catch (err) {
+        // User cancelled or error occurred
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share failed:', err)
+          setShareStatus('error')
+        }
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        setShareStatus('copied')
+        setTimeout(() => setShareStatus('idle'), 2000)
+      } catch (err) {
+        console.error('Copy failed:', err)
+        setShareStatus('error')
+        setTimeout(() => setShareStatus('idle'), 2000)
+      }
+    }
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/30">
@@ -488,6 +525,12 @@ export function CreatePage() {
             <p className="text-sm text-slate-300">{result.title}</p>
             <p className="text-xs text-slate-400">Created at {new Date(result.createdAt).toLocaleString()}</p>
             <p className="text-xs text-slate-400">Phrases: {result.phrases.length}</p>
+            <button
+              onClick={handleShare}
+              className="mt-2 w-full rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-1px] hover:bg-teal-300"
+            >
+              {shareStatus === 'copied' ? '✓ Link copied!' : shareStatus === 'error' ? 'Error sharing' : 'Share game'}
+            </button>
           </div>
         ) : null}
       </aside>
