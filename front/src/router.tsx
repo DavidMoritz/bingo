@@ -16,7 +16,7 @@ const rootRoute = createRootRoute({
   component: () => (
     <>
       <AppLayout />
-      <TanStackRouterDevtools position="bottom-right" />
+      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
     </>
   ),
 })
