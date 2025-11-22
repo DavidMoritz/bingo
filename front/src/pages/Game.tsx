@@ -6,6 +6,15 @@ import { createBingoBoard, toggleCell } from '../lib/bingo'
 import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnership, fetchUserRating } from '../lib/api'
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
+import { hyphenate } from 'hyphen/en'
+
+// Hyphenate text with soft hyphens for better wrapping
+function hyphenateText(text: string): string {
+  return text
+    .split(' ')
+    .map(word => hyphenate(word))
+    .join(' ')
+}
 
 function useAutoFitText(text: string, containerRef: React.RefObject<HTMLElement>) {
   const [fontSize, setFontSize] = useState(14)
@@ -298,6 +307,7 @@ type BingoCellProps = {
 
 function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
   const cellRef = useRef<HTMLButtonElement>(null)
+  const hyphenatedText = useMemo(() => hyphenateText(text), [text])
   const fontSize = useAutoFitText(text, cellRef)
 
   return (
@@ -310,9 +320,9 @@ function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
           ? 'border-teal-300 bg-teal-400 text-slate-950 shadow-lg shadow-teal-400/40'
           : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10'
       } ${isFree ? 'ring-2 ring-amber-300/70' : ''}`}
-      style={{ fontSize: `${fontSize}px`, hyphens: 'auto', WebkitHyphens: 'auto' }}
+      style={{ fontSize: `${fontSize}px`, hyphens: 'manual', WebkitHyphens: 'manual', wordWrap: 'break-word' }}
     >
-      <span className="break-words">{text}</span>
+      <span className="break-words" dangerouslySetInnerHTML={{ __html: hyphenatedText }} />
     </button>
   )
 }

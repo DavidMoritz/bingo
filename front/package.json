@@ -17,6 +17,7 @@
     "@tanstack/router-devtools": "^1.136.18",
     "@tanstack/router-vite-plugin": "^1.136.18",
     "aws-amplify": "^6.15.8",
+    "hyphen": "^1.10.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
