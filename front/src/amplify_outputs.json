@@ -29,11 +29,17 @@
       ],
       "redirect_sign_in_uri": [
         "http://localhost:5173/",
-        "http://localhost:4173/"
+        "http://localhost:4173/",
+        "https://main.d3qvaqzcchyfqf.amplifyapp.com/",
+        "https://bingobolt.com/",
+        "https://www.bingobolt.com/"
       ],
       "redirect_sign_out_uri": [
         "http://localhost:5173/",
-        "http://localhost:4173/"
+        "http://localhost:4173/",
+        "https://main.d3qvaqzcchyfqf.amplifyapp.com/",
+        "https://bingobolt.com/",
+        "https://www.bingobolt.com/"
       ],
       "response_type": "code",
       "scopes": [
