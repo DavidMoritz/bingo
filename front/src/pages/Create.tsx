@@ -292,17 +292,15 @@ export function CreatePage() {
     if (!result) return
 
     const shareUrl = `${window.location.origin}/game/${result.code}`
-    const shareText = `I created a bingo card called "${result.title}" - want to play? 🎲`
-    const shareData = {
-      title: `Bingo: ${result.title}`,
-      text: shareText,
-      url: shareUrl,
-    }
+    const shareText = `I created a bingo card called "${result.title}" - want to play? 🎲\n\n${shareUrl}`
 
     // Try Web Share API first (native share on mobile/desktop)
     if (navigator.share) {
       try {
-        await navigator.share(shareData)
+        await navigator.share({
+          title: `Bingo: ${result.title}`,
+          text: shareText,
+        })
         setShareStatus('idle')
       } catch (err) {
         // User cancelled or error occurred
@@ -314,7 +312,7 @@ export function CreatePage() {
     } else {
       // Fallback: copy link to clipboard with message
       try {
-        await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`)
+        await navigator.clipboard.writeText(shareText)
         setShareStatus('copied')
         setTimeout(() => setShareStatus('idle'), 2000)
       } catch (err) {

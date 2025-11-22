@@ -78,17 +78,15 @@ export function ProfilePage() {
 
   async function handleShare(set: PhraseSet) {
     const shareUrl = `${window.location.origin}/game/${set.code}`
-    const shareText = `I created a bingo card called "${set.title}" - want to play? 🎲`
-    const shareData = {
-      title: `Bingo: ${set.title}`,
-      text: shareText,
-      url: shareUrl,
-    }
+    const shareText = `I created a bingo card called "${set.title}" - want to play? 🎲\n\n${shareUrl}`
 
     // Try Web Share API first (native share on mobile/desktop)
     if (navigator.share) {
       try {
-        await navigator.share(shareData)
+        await navigator.share({
+          title: `Bingo: ${set.title}`,
+          text: shareText,
+        })
         setShareStatus(prev => ({ ...prev, [set.code]: 'idle' }))
       } catch (err) {
         // User cancelled or error occurred
@@ -101,7 +99,7 @@ export function ProfilePage() {
     } else {
       // Fallback: copy link to clipboard with message
       try {
-        await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`)
+        await navigator.clipboard.writeText(shareText)
         setShareStatus(prev => ({ ...prev, [set.code]: 'copied' }))
         setTimeout(() => setShareStatus(prev => ({ ...prev, [set.code]: 'idle' })), 2000)
       } catch (err) {
