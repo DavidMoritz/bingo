@@ -566,7 +566,7 @@ export function CreatePage() {
                   <code className="rounded bg-slate-800 px-1 py-0.5">*Front row seats</code>.
                 </li>
                 <li>
-                  Center is FREE, so aim for at least 24 phrases to fill the grid.
+                  Aim for at least 30 phrases for a full 5×5 grid (center is FREE, so you need 24+ to fill it).
                 </li>
                 <li>Grid scales with phrase count: <br></br>&lt;4 → 1×1, &lt;9 → 2×2, &lt;16 → 3×3, &lt;24 → 4×4, otherwise 5×5.</li>
               </ul>

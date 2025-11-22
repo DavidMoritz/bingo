@@ -115,7 +115,7 @@ npx ampx deploy   # Deploy to cloud
 
 ### AI Suggestions
 - Reads JSON templates from `src/suggestions/` directory
-- Generates 24-30 themed phrases based on genre
+- Generates 30 themed phrases based on genre
 - Frontend can append or replace phrases (deduplicates)
 - Add new templates by dropping JSON files in `src/suggestions/`
 
