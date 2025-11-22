@@ -292,9 +292,10 @@ export function CreatePage() {
     if (!result) return
 
     const shareUrl = `${window.location.origin}/game/${result.code}`
+    const shareText = `I created a bingo card called "${result.title}" - want to play? 🎲`
     const shareData = {
-      title: result.title,
-      text: `Join my bingo game: ${result.title}`,
+      title: `Bingo: ${result.title}`,
+      text: shareText,
       url: shareUrl,
     }
 
@@ -311,9 +312,9 @@ export function CreatePage() {
         }
       }
     } else {
-      // Fallback: copy link to clipboard
+      // Fallback: copy link to clipboard with message
       try {
-        await navigator.clipboard.writeText(shareUrl)
+        await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`)
         setShareStatus('copied')
         setTimeout(() => setShareStatus('idle'), 2000)
       } catch (err) {
