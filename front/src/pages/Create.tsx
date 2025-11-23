@@ -58,10 +58,10 @@ export function CreatePage() {
     queryFn: listAvailableGenres,
   })
 
-  // Filter genres based on input and exclude profanity
+  // Filter genres based on input with fuzzy matching and exclude profanity
   const filteredGenres = genre.trim()
     ? availableGenres.filter((g) =>
-        g.toLowerCase().startsWith(genre.toLowerCase()) && !containsProfanity(g)
+        g.toLowerCase().includes(genre.toLowerCase()) && !containsProfanity(g)
       )
     : availableGenres.filter((g) => !containsProfanity(g))
   const [phrasesText, setPhrasesText] = useState(

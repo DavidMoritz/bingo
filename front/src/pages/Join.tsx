@@ -30,7 +30,8 @@ export function JoinPage() {
   }
 
   return (
-    <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl shadow-black/30">
+    <>
+    <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Players</p>
         <h2 className="text-2xl font-bold text-white">Join a game</h2>
@@ -52,11 +53,19 @@ export function JoinPage() {
         </button>
       </form>
 
+    </section>
+    <section className="mt-10 space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Discover</p>
+        <h2 className="text-2xl font-bold text-white">Public boards</h2>
+        <p className="text-sm text-slate-300">Search discoverable sets and bolt in.</p>
+      </header>
+
       <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Public boards</p>
-            <p className="text-sm text-slate-300">Search discoverable sets and hop in.</p>
+            <p className="text-sm text-slate-300">Search discoverable sets and bolt in.</p>
           </div>
           <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -105,6 +114,7 @@ export function JoinPage() {
         </div>
       </div>
     </section>
+    </>
   )
 }
 

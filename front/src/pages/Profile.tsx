@@ -62,6 +62,19 @@ export function ProfilePage() {
     [title, phrases]
   )
 
+  // Sort boards by rating (descending), then by creation date (descending)
+  const sortedSets = useMemo(() => {
+    if (!mySets) return []
+    return [...mySets].sort((a, b) => {
+      // First, sort by rating average (higher ratings first)
+      if (b.ratingAverage !== a.ratingAverage) {
+        return b.ratingAverage - a.ratingAverage
+      }
+      // If ratings are equal, sort by creation date (newer first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+  }, [mySets])
+
   const updateMutation = useMutation({
     mutationFn: (code: string) =>
       updatePhraseSet(code, {
@@ -139,7 +152,7 @@ export function ProfilePage() {
 
         {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
         <div className="grid gap-3 sm:grid-cols-2">
-          {(mySets ?? []).map((set) => (
+          {sortedSets.map((set) => (
             <div
               key={set.code}
               className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm shadow-black/20"
@@ -147,6 +160,17 @@ export function ProfilePage() {
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-white">{set.title}</div>
                 <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">{set.code}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-1">
+                {set.ratingCount > 0 ? (
+                  <>
+                    <span className="text-xs text-yellow-400">★</span>
+                    <span className="text-xs font-medium text-white">{set.ratingAverage.toFixed(1)}</span>
+                    <span className="text-xs text-slate-400">({set.ratingCount})</span>
+                  </>
+                ) : (
+                  <span className="text-xs text-slate-400 hidden">No ratings yet</span>
+                )}
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
                 <button
@@ -294,7 +318,7 @@ export function ProfilePage() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  {new Date(s.createdAt).toLocaleString()}
+                  {formatSessionDate(s.createdAt)}
                 </p>
               </a>
             )
@@ -310,6 +334,30 @@ function parseLines(text: string): string[] {
     .split('\n')
     .map((phrase) => phrase.trim())
     .filter(Boolean)
+}
+
+function formatSessionDate(dateString: string): string {
+  const date = new Date(dateString)
+  const today = new Date()
+
+  // Check if same day
+  const isSameDay =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+
+  if (isSameDay) {
+    // Format time as "h:mma" (e.g., "2:30pm")
+    const timeString = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).toLowerCase().replace(' ', '')
+    return `Today at ${timeString}`
+  }
+
+  // Return date only (no time)
+  return date.toLocaleDateString()
 }
 
 export default ProfilePage
