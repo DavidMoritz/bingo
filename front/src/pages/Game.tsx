@@ -7,7 +7,7 @@ import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnersh
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
 import { hyphenate } from 'hyphen/en'
-import { saveGuestGameState, loadGuestGameState, clearGuestGameState, hasGuestGameState } from '../lib/guestStorage'
+import { saveGuestGameState, loadGuestGameState, clearGuestGameState } from '../lib/guestStorage'
 
 // Hyphenate text with soft hyphens for better wrapping
 async function hyphenateText(text: string): Promise<string> {
