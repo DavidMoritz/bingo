@@ -297,7 +297,7 @@ export function CreatePage() {
     if (!result) return
 
     const shareUrl = `${window.location.origin}/game/${result.code}`
-    const shareText = `I created a bingo card called "${result.title}" - want to play? 🎲\n\n⚡ ${shareUrl}`
+    const shareText = `I created a bingo card called "${result.title}" - want to play? ⚡\n\n${shareUrl}`
 
     // Try Web Share API first (native share on mobile/desktop)
     if (navigator.share) {
@@ -477,7 +477,7 @@ export function CreatePage() {
                 />
                 <span>
                   <span className="font-semibold text-white">Public</span>
-                  <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
+                  <span className="block text-xs text-slate-400">Allow others to discover.</span>
                 </span>
               </label>
             )}
@@ -499,7 +499,7 @@ export function CreatePage() {
                 <span className="font-semibold text-white">Free space</span>
                 <span className="block text-xs text-slate-400">
                   {freeSpaceLocked
-                    ? 'Automatically enabled until you have 25+ phrases.'
+                    ? ''
                     : 'Keep the center FREE; toggle off to use another phrase.'}
                 </span>
               </span>

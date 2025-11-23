@@ -103,7 +103,7 @@ export function ProfilePage() {
 
   async function handleShare(set: PhraseSet) {
     const shareUrl = `${window.location.origin}/game/${set.code}`
-    const shareText = `I created a bingo card called "${set.title}" - want to play? 🎲\n\n⚡ ${shareUrl}`
+    const shareText = `I created a bingo card called "${set.title}" - want to play? ⚡\n\n${shareUrl}`
 
     // Try Web Share API first (native share on mobile/desktop)
     if (navigator.share) {
@@ -259,7 +259,7 @@ export function ProfilePage() {
                   />
                   <span>
                     <span className="font-semibold text-white">Public</span>
-                    <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
+                    <span className="block text-xs text-slate-400">Allow others to discover.</span>
                   </span>
                 </label>
               )}

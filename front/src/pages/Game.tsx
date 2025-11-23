@@ -128,6 +128,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   });
   const [currentSet, setCurrentSet] = useState<PhraseSet | null>(initialPhraseSet)
   const [sessionId, setSessionId] = useState<string | null>(session?.id ?? null)
+  const [showToast, setShowToast] = useState(false)
   const hasCreatedSession = useRef(false)
 
   // Fetch existing rating for this user and phrase set
@@ -266,6 +267,32 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
     navigate({ to: '/create', search: { rebuild: params.toString() } })
   }
 
+  async function handleShare() {
+    if (!currentSet) return
+    const url = `${window.location.origin}/game/${currentSet.code}`
+    const message = `I'm playing a bingo card called '${currentSet.title}' - want to join? ⚡\n\n${url}`
+
+    // Try Web Share API first (works on mobile and some desktop browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message })
+        return
+      } catch {
+        // User cancelled or share failed, fall through to clipboard
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(message)
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+    } catch {
+      // Last resort: show the message in an alert
+      console.log(message)
+    }
+  }
+
   if (!board || !currentSet) {
     return <p className="text-slate-200">Unable to load board.</p>
   }
@@ -315,6 +342,12 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={handleShare}
+            className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-teal-200 transition hover:bg-white/10"
+          >
+            Share board
+          </button>
           <button
             onClick={reshuffle}
             className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
@@ -371,6 +404,14 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
             >
               Sign Up / Sign In
             </button>
+          </div>
+        </div>
+      )}
+
+      {showToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="rounded-xl border border-white/15 bg-white/10 px-6 py-3 shadow-lg backdrop-blur-sm">
+            <p className="text-sm font-semibold text-teal-200">Link copied to clipboard!</p>
           </div>
         </div>
       )}
