@@ -31,14 +31,14 @@ export function JoinPage() {
 
   return (
     <>
-    <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
+    <section className="space-y-2 sm:space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Players</p>
         <h2 className="text-2xl font-bold text-white">Join a game</h2>
-        <p className="text-sm text-slate-300">Enter a code or browse public boards.</p>
+        <p className="text-xs sm:text-sm text-slate-300">Enter a code or browse public boards.</p>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:gap-4 sm:flex-row">
         <input
           value={code}
           onChange={(e) => setCode(e.target.value)}
@@ -54,19 +54,14 @@ export function JoinPage() {
       </form>
 
     </section>
-    <section className="mt-10 space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
+    <section className="mt-4 sm:mt-10 space-y-2 sm:space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Discover</p>
         <h2 className="text-2xl font-bold text-white">Public boards</h2>
-        <p className="text-sm text-slate-300">Search discoverable sets and bolt in.</p>
+        <p className="text-xs sm:text-sm text-slate-300">Search discoverable sets and bolt in.</p>
       </header>
 
-      <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Public boards</p>
-            <p className="text-sm text-slate-300">Search discoverable sets and bolt in.</p>
-          </div>
           <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
             <input
               value={search}
@@ -76,7 +71,7 @@ export function JoinPage() {
             />
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white bg-slate-950/60 transition hover:bg-white/10 disabled:opacity-60"
               disabled={isFetching}
             >
               {isFetching ? 'Searching…' : 'Search'}
@@ -93,7 +88,7 @@ export function JoinPage() {
             <button
               key={set.code}
               onClick={() => navigate({ to: '/game/$code', params: { code: set.code } })}
-              className="group flex flex-col items-start gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
+              className="group flex flex-col items-start gap-2 rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
             >
               <div className="flex w-full items-center justify-between">
                 <span className="text-sm font-semibold text-white">{set.title}</span>
@@ -112,7 +107,6 @@ export function JoinPage() {
             </button>
           ))}
         </div>
-      </div>
     </section>
     </>
   )
