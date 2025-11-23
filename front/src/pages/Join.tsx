@@ -1,14 +1,22 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchPublicPhraseSets } from '../lib/api'
 import type { PhraseSet } from '../types'
+import { loadGuestGameState } from '../lib/guestStorage'
+import type { GuestGameState } from '../lib/guestStorage'
 
 export function JoinPage() {
   const navigate = useNavigate()
   const [code, setCode] = useState('')
   const [search, setSearch] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
+  const [guestSession, setGuestSession] = useState<GuestGameState | null>(null)
+
+  useEffect(() => {
+    const saved = loadGuestGameState()
+    setGuestSession(saved)
+  }, [])
 
   const { data: publicSets, isFetching, refetch } = useQuery({
     queryKey: ['public-phrase-sets', submittedQuery],
@@ -31,6 +39,28 @@ export function JoinPage() {
 
   return (
     <>
+    {guestSession && (
+      <section className="mb-4 sm:mb-8 rounded-2xl border border-amber-500/30 bg-amber-950/30 p-4 sm:p-8 shadow-lg">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Continue Playing</p>
+            <h3 className="mt-2 text-xl font-bold text-white">{guestSession.title}</h3>
+            <p className="mt-1 text-sm text-slate-300">
+              Code: <span className="font-mono text-amber-200">{guestSession.code}</span> · {guestSession.checkedCells.length} cells checked
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Last played: {new Date(guestSession.lastUpdated).toLocaleDateString()}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate({ to: '/game/$code', params: { code: guestSession.code } })}
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-amber-400 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-amber-400/30 transition hover:translate-y-[-2px]"
+          >
+            Resume Game
+          </button>
+        </div>
+      </section>
+    )}
     <section className="space-y-2 sm:space-y-6 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Players</p>

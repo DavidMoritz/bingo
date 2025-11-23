@@ -7,6 +7,7 @@ import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnersh
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
 import { hyphenate } from 'hyphen/en'
+import { saveGuestGameState, loadGuestGameState, clearGuestGameState, hasGuestGameState } from '../lib/guestStorage'
 
 // Hyphenate text with soft hyphens for better wrapping
 async function hyphenateText(text: string): Promise<string> {
@@ -103,6 +104,26 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
         })),
       }
     }
+
+    // Check for guest game state in LocalStorage (even if user just signed in)
+    if (initialPhraseSet) {
+      const guestState = loadGuestGameState()
+      if (guestState && guestState.code.toLowerCase() === initialPhraseSet.code.toLowerCase()) {
+        return {
+          code: guestState.code,
+          title: guestState.title,
+          gridSize: guestState.gridSize,
+          usesFreeCenter: guestState.usesFreeCenter,
+          cells: guestState.boardSnapshot.map((snapshot, idx) => ({
+            id: `cell-${idx}`,
+            text: snapshot.text,
+            isFree: snapshot.isFree ?? false,
+            selected: guestState.checkedCells.includes(idx),
+          })),
+        }
+      }
+    }
+
     return initialPhraseSet ? createBingoBoard(initialPhraseSet, initialPhraseSet.freeSpace) : null
   });
   const [currentSet, setCurrentSet] = useState<PhraseSet | null>(initialPhraseSet)
@@ -125,6 +146,10 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
       // Set flag BEFORE async operation to prevent race condition in StrictMode
       hasCreatedSession.current = true
 
+      // Check if there's guest game state that needs to be migrated
+      const guestState = loadGuestGameState()
+      const shouldMigrateGuestState = guestState && guestState.code.toLowerCase() === currentSet.code.toLowerCase()
+
       try {
         const created = await createPlaySession({
           profileId: ownerProfileId,
@@ -136,6 +161,11 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           checkedCells: board.cells.map((c, idx) => (c.selected ? idx : -1)).filter((idx) => idx >= 0),
         })
         setSessionId(created.id)
+
+        // Clear guest game state after successfully creating a PlaySession
+        if (shouldMigrateGuestState) {
+          clearGuestGameState()
+        }
       } catch {
         // Reset flag on error so user can retry
         hasCreatedSession.current = false
@@ -151,14 +181,31 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
 
   function handleCellClick(cellId: string) {
     setBoard((current) => {
-      if (!current) return current
+      if (!current || !currentSet) return current
       const next = toggleCell(current, cellId)
+
       if (sessionId && ownerProfileId) {
+        // Update PlaySession for logged-in users
         const checked = next.cells
           .map((c, idx) => (c.selected ? idx : -1))
           .filter((idx) => idx >= 0)
         updateSessionCheckedMutation.mutate({ id: sessionId, checked })
+      } else if (!ownerProfileId) {
+        // Save to LocalStorage for guest players
+        const checked = next.cells
+          .map((c, idx) => (c.selected ? idx : -1))
+          .filter((idx) => idx >= 0)
+        saveGuestGameState({
+          code: currentSet.code,
+          title: currentSet.title,
+          gridSize: next.gridSize,
+          usesFreeCenter: next.usesFreeCenter,
+          boardSnapshot: next.cells.map((c) => ({ text: c.text, isFree: c.isFree })),
+          checkedCells: checked,
+          lastUpdated: new Date().toISOString(),
+        })
       }
+
       return next
     })
   }
@@ -166,7 +213,22 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   function reshuffle() {
     if (!currentSet) return
     setSessionId(null)
-    setBoard(createBingoBoard(currentSet, currentSet.freeSpace))
+    hasCreatedSession.current = false
+    const newBoard = createBingoBoard(currentSet, currentSet.freeSpace)
+    setBoard(newBoard)
+
+    // For guest players, save new board state to LocalStorage
+    if (!ownerProfileId) {
+      saveGuestGameState({
+        code: currentSet.code,
+        title: currentSet.title,
+        gridSize: newBoard.gridSize,
+        usesFreeCenter: newBoard.usesFreeCenter,
+        boardSnapshot: newBoard.cells.map((c) => ({ text: c.text, isFree: c.isFree })),
+        checkedCells: [],
+        lastUpdated: new Date().toISOString(),
+      })
+    }
   }
 
   const ratingMutation = useMutation({
@@ -216,7 +278,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           <h2 className="text-3xl font-bold text-white">{currentSet.title}</h2>
           <p className="text-sm text-slate-300">
             Code <span className="font-mono text-white">{currentSet.code}</span> ·{' '}
-            {currentSet.phrases.length} phrases · {selectedCount} selected
+            {selectedCount} selected
           </p>
           <p className="text-xs text-slate-400">
             Created by:{' '}
@@ -293,6 +355,25 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           </button>
         </div>
       </div>
+
+      {!ownerProfileId && (
+        <div className="rounded-2xl border border-teal-500/30 bg-teal-950/30 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Save Your Progress</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Sign up to save your game sessions and access them from any device!
+              </p>
+            </div>
+            <button
+              onClick={() => navigate({ to: '/login', search: { returnTo: `/game/${currentSet.code}` } })}
+              className="inline-flex items-center justify-center rounded-xl border border-teal-400/40 bg-teal-500/20 px-4 py-2 text-sm font-semibold text-teal-200 transition hover:bg-teal-500/30"
+            >
+              Sign Up / Sign In
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

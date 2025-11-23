@@ -329,7 +329,7 @@ export function CreatePage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
-      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/30">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8 shadow-xl shadow-black/30">
         <header className="mb-6 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Creator</p>

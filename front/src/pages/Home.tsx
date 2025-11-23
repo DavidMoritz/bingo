@@ -1,4 +1,7 @@
 import { Link } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { loadGuestGameState } from '../lib/guestStorage'
+import type { GuestGameState } from '../lib/guestStorage'
 
 const featureCards = [
   { title: 'Create', description: '⚡ Spark a game in seconds—instant codes, zero hassle.' },
@@ -7,9 +10,15 @@ const featureCards = [
 ]
 
 export function HomePage() {
+  const [guestSession, setGuestSession] = useState<GuestGameState | null>(null)
+
+  useEffect(() => {
+    const saved = loadGuestGameState()
+    setGuestSession(saved)
+  }, [])
   return (
     <div className="space-y-10">
-      <section className="rounded-3xl bg-white/5 p-8 shadow-2xl ring-1 ring-white/10">
+      <section className="rounded-3xl bg-white/5 p-4 sm:p-8 shadow-2xl ring-1 ring-white/10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-4 lg:max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-300">
@@ -22,6 +31,15 @@ export function HomePage() {
               Customize your clues, generate a code, and you're live. Players instantly join with randomized boards—no setup, just play.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
+              {guestSession && (
+                <Link
+                  to="/game/$code"
+                  params={{ code: guestSession.code }}
+                  className="inline-flex items-center justify-center rounded-xl bg-amber-400 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-amber-400/30 transition hover:translate-y-[-2px]"
+                >
+                  Resume Game
+                </Link>
+              )}
               <Link
                 to="/create"
                 className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-2px]"
@@ -53,7 +71,7 @@ export function HomePage() {
         {featureCards.map((card) => (
           <div
             key={card.title}
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200 shadow-lg shadow-black/30"
+            className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:px-6 md:px-8 md:py-6 text-sm text-slate-200 shadow-lg shadow-black/30"
           >
             <h3 className="text-lg font-semibold text-white">{card.title}</h3>
             <p className="mt-2 leading-relaxed text-slate-300">{card.description}</p>

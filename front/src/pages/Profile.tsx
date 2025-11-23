@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useEffect, useRef, useState, useMemo } from 'react'
+import { Link } from '@tanstack/react-router'
 import { fetchMyPhraseSets, fetchMySessions, orphanPhraseSet, updatePhraseSet } from '../lib/api'
 import type { PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
@@ -141,17 +142,31 @@ export function ProfilePage() {
     )
   }
 
+  const hasBoards = sortedSets.length > 0
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
-      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200 shadow-xl shadow-black/30">
-        <header className="mb-4 space-y-1">
-          <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Profile</p>
-          <h2 className="text-2xl font-bold text-white">My boards</h2>
-          <p className="text-sm text-slate-300">Owned by {email || displayName}</p>
+    <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.4fr,1fr]">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 text-slate-200 shadow-xl shadow-black/30">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Profile</p>
+            <h2 className="text-2xl font-bold text-white">My boards</h2>
+            <p className="text-sm text-slate-300">
+              {hasBoards ? `Owned by ${email || displayName}` : 'Your customized boards appear here'}
+            </p>
+          </div>
+          {!isLoading && !hasBoards && (
+            <Link
+              to="/create"
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-teal-400 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-2px]"
+            >
+              Create a board
+            </Link>
+          )}
         </header>
 
         {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 pt-4 sm:pt-6">
           {sortedSets.map((set) => (
             <div
               key={set.code}
@@ -191,7 +206,8 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <section ref={editorRef} className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200 shadow-xl shadow-black/30">
+      {hasBoards && (
+        <section ref={editorRef} className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 text-slate-200 shadow-xl shadow-black/30">
         <header className="mb-4 space-y-1">
           <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Editor</p>
           <h3 className="text-xl font-semibold text-white">
@@ -296,8 +312,9 @@ export function ProfilePage() {
           <p className="text-sm text-slate-400">Select a board to edit.</p>
         )}
       </section>
+      )}
 
-      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200 shadow-xl shadow-black/30 lg:col-span-2">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 text-slate-200 shadow-xl shadow-black/30 lg:col-span-2">
         <header className="mb-3 space-y-1">
           <p className="text-xs uppercase tracking-[0.3em] text-teal-300">History</p>
           <h3 className="text-xl font-semibold text-white">Play sessions</h3>
