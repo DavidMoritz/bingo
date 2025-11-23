@@ -2,6 +2,7 @@ import { Amplify } from 'aws-amplify'
 import { generateClient } from 'aws-amplify/data'
 import type { PhraseSet, PlaySession } from '../types'
 import outputs from '../amplify_outputs.json'
+import { contentHasProfanity } from './profanity'
 
 let dataClient: any
 
@@ -39,9 +40,19 @@ export async function createPhraseSet(input: {
 }): Promise<PhraseSet> {
   const client = getDataClient()
   const code = generateCode()
+
+  // Server-side profanity enforcement: Force private if profanity detected
+  // NOTE: This is client-side validation. For true server-side validation,
+  // implement custom resolvers or Lambda functions in Amplify backend.
+  const hasProfanity = contentHasProfanity(input.title, input.phrases)
+  const sanitizedInput = {
+    ...input,
+    isPublic: hasProfanity ? false : input.isPublic,
+  }
+
   const res = await client.models.PhraseSet.create({
     code,
-    ...input,
+    ...sanitizedInput,
     ratingTotal: 0,
     ratingCount: 0,
     ratingAverage: 0,
@@ -78,7 +89,17 @@ export async function updatePhraseSet(
   }
 ): Promise<PhraseSet> {
   const client = getDataClient()
-  const res = await client.models.PhraseSet.update({ code, ...input })
+
+  // Server-side profanity enforcement: Force private if profanity detected
+  // NOTE: This is client-side validation. For true server-side validation,
+  // implement custom resolvers or Lambda functions in Amplify backend.
+  const hasProfanity = contentHasProfanity(input.title, input.phrases)
+  const sanitizedInput = {
+    ...input,
+    isPublic: hasProfanity ? false : input.isPublic,
+  }
+
+  const res = await client.models.PhraseSet.update({ code, ...sanitizedInput })
   if (!res?.data) throw new Error('Failed to update phrase set')
   return res.data as PhraseSet
 }
@@ -138,7 +159,7 @@ export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]>
   const allPublicSets = (res?.data as PhraseSet[]) ?? []
 
   // Filter sets based on query if it exists
-  const setsToShow = !query.trim()
+  const queryFilteredSets = !query.trim()
     ? allPublicSets
     : allPublicSets.filter((set) => {
         const lowerQuery = query.trim().toLowerCase()
@@ -148,8 +169,11 @@ export async function fetchPublicPhraseSets(query: string): Promise<PhraseSet[]>
         return lowerTitle.includes(lowerQuery) || lowerCode.includes(lowerQuery) || hasMatchingPhrase
       })
 
+  // Filter out sets with explicit content
+  const cleanSets = queryFilteredSets.filter((set) => !contentHasProfanity(set.title, set.phrases))
+
   // Sort the resulting sets by the Bayesian score
-  return sortSetsByBayesianScore(setsToShow)
+  return sortSetsByBayesianScore(cleanSets)
 }
 
 export async function fetchUserRating(profileId: string, phraseSetCode: string): Promise<{ id: string; ratingValue: number } | null> {

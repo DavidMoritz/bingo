@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { fetchMyPhraseSets, fetchMySessions, orphanPhraseSet, updatePhraseSet } from '../lib/api'
 import type { PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
+import { contentHasProfanity } from '../lib/profanity'
 
 export function ProfilePage() {
   const { displayName, email } = useUserInfo();
@@ -36,6 +37,7 @@ export function ProfilePage() {
   const [isPublic, setIsPublic] = useState(true)
   const [freeSpace, setFreeSpace] = useState(true)
   const [shareStatus, setShareStatus] = useState<Record<string, 'idle' | 'copied' | 'error'>>({})
+  const editorRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (editing) {
@@ -43,6 +45,8 @@ export function ProfilePage() {
       setPhrasesText(editing.phrases.join('\n'))
       setIsPublic(editing.isPublic)
       setFreeSpace(editing.freeSpace)
+      // Scroll to editor section on mobile
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     } else {
       setTitle('')
       setPhrasesText('')
@@ -51,12 +55,19 @@ export function ProfilePage() {
     }
   }, [editing])
 
+  // Parse phrases and check for profanity
+  const phrases = useMemo(() => parseLines(phrasesText), [phrasesText])
+  const hasProfanity = useMemo(
+    () => contentHasProfanity(title, phrases),
+    [title, phrases]
+  )
+
   const updateMutation = useMutation({
     mutationFn: (code: string) =>
       updatePhraseSet(code, {
         title: title.trim(),
         phrases: parseLines(phrasesText),
-        isPublic,
+        isPublic: hasProfanity ? false : isPublic, // Force private if profanity detected
         freeSpace,
         ownerProfileId,
         ownerDisplayName: displayName || undefined,
@@ -137,7 +148,6 @@ export function ProfilePage() {
                 <div className="font-semibold text-white">{set.title}</div>
                 <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">{set.code}</span>
               </div>
-              <p className="mt-1 text-xs text-slate-400">{set.phrases.length} phrases</p>
               <div className="mt-3 flex items-center justify-between gap-2">
                 <button
                   className="rounded-full bg-teal-400 px-5 py-1 text-xs font-semibold text-slate-950 transition hover:bg-teal-300"
@@ -157,7 +167,7 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200 shadow-xl shadow-black/30">
+      <section ref={editorRef} className="rounded-3xl border border-white/10 bg-white/5 p-6 text-slate-200 shadow-xl shadow-black/30">
         <header className="mb-4 space-y-1">
           <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Editor</p>
           <h3 className="text-xl font-semibold text-white">
@@ -181,6 +191,7 @@ export function ProfilePage() {
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white shadow-inner shadow-black/40 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                maxLength={40}
               />
             </div>
 
@@ -197,19 +208,21 @@ export function ProfilePage() {
               <p className="text-xs text-slate-400">{parseLines(phrasesText).length} phrases</p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-teal-300"
-                  checked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                />
-                <span>
-                  <span className="font-semibold text-white">Public</span>
-                  <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
-                </span>
-              </label>
+            <div className={`grid gap-3 ${hasProfanity ? '' : 'sm:grid-cols-2'}`}>
+              {!hasProfanity && (
+                <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-teal-300"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-semibold text-white">Public</span>
+                    <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
+                  </span>
+                </label>
+              )}
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
                 <input
                   type="checkbox"

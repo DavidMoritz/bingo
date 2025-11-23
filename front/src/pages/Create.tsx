@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useSearch } from '@tanstack/react-router'
 import { createPhraseSet, suggestPhrases, listAvailableGenres } from '../lib/api'
 import type { PhraseSet } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
+import { contentHasProfanity, containsProfanity } from '../lib/profanity'
 
 export function CreatePage() {
   const search = useSearch({ from: '/create' }) as any
@@ -17,7 +18,7 @@ export function CreatePage() {
     user?.username ||
     user?.userId ||
     'guest'
-  const [title, setTitle] = useState('VC Bingo')
+  const [title, setTitle] = useState('Bingo Bolt')
   const [isTitleDirty, setIsTitleDirty] = useState(false)
   const [genre, setGenre] = useState('')
   const [isPublic, setIsPublic] = useState(true)
@@ -57,10 +58,12 @@ export function CreatePage() {
     queryFn: listAvailableGenres,
   })
 
-  // Filter genres based on input
+  // Filter genres based on input and exclude profanity
   const filteredGenres = genre.trim()
-    ? availableGenres.filter((g) => g.toLowerCase().startsWith(genre.toLowerCase()))
-    : availableGenres
+    ? availableGenres.filter((g) =>
+        g.toLowerCase().startsWith(genre.toLowerCase()) && !containsProfanity(g)
+      )
+    : availableGenres.filter((g) => !containsProfanity(g))
   const [phrasesText, setPhrasesText] = useState(
     ['AI-powered', 'Runway', 'Synergy', 'Pivot', 'We are different', 'Let me circle back', 'Can we park this?'].join(
       '\n'
@@ -127,6 +130,12 @@ export function CreatePage() {
   const freeSpaceLocked = phrases.length < 25
   const effectiveFreeSpace = freeSpaceLocked ? true : freeSpace
 
+  // Check for profanity in content
+  const hasProfanity = useMemo(
+    () => contentHasProfanity(title, phrases),
+    [title, phrases]
+  )
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     mutation.reset()
@@ -141,7 +150,7 @@ export function CreatePage() {
       await mutation.mutateAsync({
         title: title.trim(),
         phrases,
-        isPublic,
+        isPublic: hasProfanity ? false : isPublic, // Force private if profanity detected
         freeSpace: effectiveFreeSpace,
         ownerProfileId,
         ownerDisplayName: displayName || (ownerProfileId === 'guest' ? 'guest' : undefined),
@@ -158,12 +167,8 @@ export function CreatePage() {
 
     const trimmedGenre = genre.trim()
 
-    // Validate single word
+    // Validate genre is provided
     if (!trimmedGenre) return
-    if (/\s/.test(trimmedGenre)) {
-      alert('Please enter only one word for the genre')
-      return
-    }
 
     // Auto-populate title if not dirty
     if (!isTitleDirty) {
@@ -197,10 +202,10 @@ export function CreatePage() {
   }
 
   function handleGenreChange(value: string) {
-    // Only allow single word (no spaces)
-    const singleWord = value.replace(/\s+/g, '')
-    setGenre(singleWord)
-    setShowSuggestions(singleWord.length > 0)
+    // Convert spaces to hyphens
+    const hyphenated = value.replace(/\s+/g, '-')
+    setGenre(hyphenated)
+    setShowSuggestions(hyphenated.length > 0)
     setSelectedIndex(-1)
   }
 
@@ -328,10 +333,10 @@ export function CreatePage() {
         <header className="mb-6 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Creator</p>
-            <h2 className="text-2xl font-bold text-white">Create a phrase set</h2>
+            <h2 className="text-2xl font-bold text-white">Create a board</h2>
             <p className="text-sm text-slate-300">Add a title and paste phrases, one per line.</p>
           </div>
-          <span className="rounded-full bg-teal-400/20 px-3 py-1 text-xs font-semibold text-teal-200">
+          <span className="hidden rounded-full bg-teal-400/20 px-3 py-1 text-xs font-semibold text-teal-200">
             POST /phrase-sets
           </span>
         </header>
@@ -339,7 +344,7 @@ export function CreatePage() {
         <form onSubmit={handleSuggest} className="mb-4 space-y-3" aria-label="Suggest Phrases Form">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="genre">
-              Genre (one word)
+              Genre
             </label>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative w-full sm:max-w-sm">
@@ -352,6 +357,7 @@ export function CreatePage() {
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(genre.length > 0 || availableGenres.length > 0)}
                   placeholder="unicorns, romcom, sci-fi..."
+                  maxLength={25}
                   autoComplete="off"
                 />
                 {showSuggestions && filteredGenres.length > 0 && (
@@ -425,6 +431,7 @@ export function CreatePage() {
                 setIsTitleDirty(true)
               }}
               placeholder="Board title"
+              maxLength={40}
               required
             />
           </div>
@@ -459,19 +466,21 @@ export function CreatePage() {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-teal-300"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-              />
-              <span>
-                <span className="font-semibold text-white">Public</span>
-                <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
-              </span>
-            </label>
+          <div className={`grid gap-3 ${hasProfanity ? '' : 'sm:grid-cols-2'}`}>
+            {!hasProfanity && (
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-teal-300"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                />
+                <span>
+                  <span className="font-semibold text-white">Public</span>
+                  <span className="block text-xs text-slate-400">Allow others to discover this set.</span>
+                </span>
+              </label>
+            )}
             <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
               <input
                 type="checkbox"
