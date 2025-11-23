@@ -271,7 +271,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
             key={cell.id}
             text={cell.text || '…'}
             selected={cell.selected}
-            isFree={cell.isFree}
+            isFree={cell.isFree ?? false}
             onClick={() => handleCellClick(cell.id)}
           />
         ))}
@@ -307,7 +307,7 @@ type BingoCellProps = {
 function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
   const cellRef = useRef<HTMLButtonElement>(null)
   const [hyphenatedText, setHyphenatedText] = useState(text)
-  const fontSize = useAutoFitText(text, cellRef)
+  const fontSize = useAutoFitText(text, cellRef as React.RefObject<HTMLElement>)
 
   useEffect(() => {
     hyphenateText(text).then(setHyphenatedText)

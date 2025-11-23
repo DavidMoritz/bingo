@@ -44,6 +44,22 @@ npx ampx deploy   # Deploy to cloud
 - `VITE_API_URL`: Backend URL for phrase suggestions (defaults to `http://localhost:3000`)
 - Google OAuth secrets configured in Amplify: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 
+## Deployment & Debugging
+
+### Deployment Logs
+When the user mentions a deployment by number (e.g., "deployment 29 failed"), **ALWAYS check the deployment logs first** before attempting fixes:
+
+```bash
+# Deployment logs location (from project root)
+deployment-logs/Deployment-<number>-logs/
+
+# Contains:
+# - BUILD.txt: Build process logs and error messages
+# - DEPLOY.txt: Deployment logs
+```
+
+**Important:** Read the BUILD.txt file to see the actual build errors before proposing solutions. Don't guess at what might be wrong.
+
 ## Architecture
 
 ### Hybrid Backend Architecture
