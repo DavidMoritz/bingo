@@ -124,6 +124,10 @@ All models use API Key authorization mode (`publicApiKey`) for simplicity.
 - **Ownership**: Stores both `ownerProfileId` and `ownerDisplayName` for better display
 
 ### Join Flow (`front/src/pages/Join.tsx`)
+- **Guest Resume Section**: If guest has a saved game in LocalStorage
+  - Shows amber "Continue Playing" card at top of page
+  - Displays game title, code, progress, and last played date
+  - Full-width "Resume Game" button on mobile, auto-width on desktop
 - **Direct Entry**: Enter code → navigate to `/game/$code`
 - **Public Search**: Query phrase sets by title or code
   - Results sorted by rating (desc) then recency
@@ -137,9 +141,22 @@ All models use API Key authorization mode (`publicApiKey`) for simplicity.
   - 16-23 phrases → 4×4 grid
   - 24+ phrases → 5×5 grid (FREE center if enabled)
 - **Session Persistence**:
-  - Creates `PlaySession` on first cell click
-  - Saves board snapshot and checked cells
-  - Updates on every cell toggle
+  - **Logged-in users**: Creates `PlaySession` in DynamoDB on first cell click
+  - **Guest users**: Saves game state to LocalStorage automatically
+  - Updates on every cell toggle (DynamoDB or LocalStorage)
+  - **Seamless migration**: When guest signs up, LocalStorage state migrates to PlaySession
+- **Guest Session Resume** (`front/src/lib/guestStorage.ts`):
+  - Saves board snapshot, checked cells, grid size, and last updated timestamp
+  - Persists across page refreshes
+  - Resume buttons appear on Home, Join, and Login pages
+  - Shows game title, code, progress (cells checked), and last played date
+  - Automatically cleared after successful migration to PlaySession
+- **Sign-up Flow**:
+  - Guest playing → Clicks "Sign Up / Sign In" → Completes authentication
+  - Redirects back to game with all progress intact (loaded from LocalStorage)
+  - Creates PlaySession with current board state
+  - Clears LocalStorage after successful migration
+  - Zero progress lost during authentication
 - **Rating System**:
   - Queries `Rating` table to check if user already rated
   - If already rated: shows "Thank you for your feedback!"
@@ -152,8 +169,11 @@ All models use API Key authorization mode (`publicApiKey`) for simplicity.
 
 ### Profile Page (`front/src/pages/Profile.tsx`)
 - **My Boards**: Lists phrase sets owned by user
+  - **Empty state**: Shows "Your customized boards appear here" with "Create a board" button
   - Edit functionality: update title, phrases, visibility, free space
   - Remove from profile: sets `ownerProfileId` to "guest"
+  - Sorted by rating (descending), then creation date (newest first)
+- **Editor Panel**: Only visible when user has boards to edit
 - **Play Sessions**: Shows past games with resume links
   - Displays title, grid size, checked cell count, created date
   - Click to resume game at `/session/$id`
@@ -180,11 +200,21 @@ All models use API Key authorization mode (`publicApiKey`) for simplicity.
 - **PlaySession.boardSnapshot**: Stored as JSON string (AWSJSON type), parsed on read
 - **PlaySession.checkedCells**: Stored as integer array
 
-## Styling
+## Styling & Responsive Design
 - **Tailwind CSS**: All styling via utility classes (no separate CSS modules)
-- **Color Scheme**: Dark theme with teal accents, slate backgrounds, white text
-- **Responsive**: Mobile-first design with sm/lg breakpoints
-- **Effects**: Gradients, blur, shadows, transitions, hover states
+- **Color Scheme**:
+  - Dark theme with teal accents for primary actions
+  - Amber accents for "Resume Game" features
+  - Slate backgrounds, white text
+- **Mobile-First Responsive Design**:
+  - Breakpoints: `sm` (640px), `md` (768px), `lg` (1024px)
+  - Full-width buttons on mobile (`w-full`), auto-width on desktop (`sm:w-auto`)
+  - Stacked layouts on mobile, flex/grid on desktop
+  - Smaller padding/spacing on mobile (`p-4 sm:p-6 md:p-8`)
+  - Font size adjustments for mobile readability
+  - Bingo cells auto-size based on grid dimensions
+  - Text auto-fitting with hyphenation for long phrases
+- **Effects**: Gradients, blur, shadows, transitions, hover states, translate-y animations
 
 ## Running and Building
 

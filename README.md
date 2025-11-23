@@ -1,48 +1,82 @@
 # Bingo Builder
 
-A Vite + React + TypeScript front-end with TanStack Router/Query and Tailwind, backed by a tiny Express API. Create phrase sets, share a code, play bingo with dynamic grids, AI-ish suggestions, public search, and ratings.
+A lightning-fast bingo app with custom phrase sets, dynamic grids, and seamless guest-to-authenticated flow. Built with Vite + React + TypeScript, TanStack Router/Query, Tailwind CSS, and AWS Amplify backend.
 
 ## Stack
-- Backend: Node + Express (TypeScript, in-memory)
-- Frontend: Vite, React, TanStack Router, React Query, Tailwind CSS
-- Tests: Vitest (backend + frontend), jsdom for UI-side tests
+- **Backend**: AWS Amplify Gen 2 (DynamoDB + GraphQL API + Cognito Auth with Google OAuth)
+- **Frontend**: Vite, React 19, TanStack Router, React Query, Tailwind CSS
+- **Tests**: Vitest (backend + frontend), jsdom for UI-side tests
+- **Deployment**: AWS Amplify Hosting with git-based CI/CD
 
 ## Setup
 ```bash
-# backend (repo root)
-npm install
-npm run dev    # starts API on :3000 (set PORT to override)
+# Start Amplify backend sandbox
+npx ampx sandbox  # Creates isolated dev environment
 
-# frontend
+# Frontend (in separate terminal)
 cd front
 npm install
-npm run dev    # Vite dev server (needs Node >= 20.19)
+npm run dev       # Vite dev server (needs Node >= 20.19)
 ```
-Set `VITE_API_URL` in `front` if the API isn’t on `http://localhost:3000`.
+
+**Environment Variables**:
+- Google OAuth credentials configured in Amplify Console
+- `VITE_API_URL` for legacy Express API (phrase suggestions only)
 
 ## Scripts
-- Backend: `npm run dev`, `npm run build`, `npm test` (Vitest, no port binding)
-- Frontend: `npm run dev`, `npm run build`, `npm test` (Vitest/jsdom)
+- **Amplify**: `npx ampx sandbox` (local dev), `git push` (production deploy)
+- **Frontend**: `npm run dev`, `npm run build`, `npm test` (Vitest/jsdom)
+- **Legacy Backend**: `npm run dev` (Express API for phrase suggestions)
 
 ## Features
-- Create phrase sets with optional AI suggestions; supports OR (`A | B`) and priority (`*Phrase`) syntax.
-- Dynamic grid sizing by phrase count (1×1 up to 5×5; FREE center only on 5×5, locked on until 25+ phrases).
-- Public/private toggle; free-space toggle (locked on until 25+ phrases).
-- Join via code or search public boards (sorted by rating, then recency).
-- In-game star ratings with inline thank-you state.
 
-## API (high-level)
-- `POST /phrase-sets` — create a set
-- `GET /phrase-sets/:code` — fetch by code
-- `POST /phrase-suggestions` — genre → phrases
-- `GET /phrase-sets/public?q=` — search public sets
-- `POST /phrase-sets/:code/rate` — submit 1–5 star rating
+### Core Gameplay
+- **Create phrase sets** with genre-based suggestions; supports OR (`A | B`) and priority (`*Phrase`) syntax
+- **Dynamic grid sizing** by phrase count: 1×1 → 2×2 → 3×3 → 4×4 → 5×5 (FREE center on 5×5 only)
+- **Public/private boards** with star ratings (1-5) and Bayesian sorting
+- **Join via code** or search public boards by title, code, or phrase content
+- **Auto-fit text** in cells with hyphenation for long phrases
 
-## Notes
-- Data/rates are in-memory; restart clears them.
-- To add more suggestion templates, drop JSON files in `src/suggestions/`.
+### Guest Session Persistence
+- **Play without signing up**: Guest players' progress saved to LocalStorage
+- **Resume on refresh**: Board state, checked cells, and grid persist across page reloads
+- **Resume buttons**: Appear on Home, Join, and Login pages with game info
+- **Seamless sign-up flow**:
+  1. Guest plays game → Clicks "Sign Up / Sign In" → Authenticates
+  2. Returns to game with all progress intact
+  3. LocalStorage state automatically migrates to cloud PlaySession
+  4. No progress lost during authentication
 
-## TODO:
-If a guest player (not logged in) is playing a board, we should be saving their state in LocalStorage so that if they refresh the screen, the session is preserved.
-Below "Can you make this better?", the bottom should suggest signing up in order to save your progress.
-Sign in/up should not break the current game being played, merely assign a PlaySession to the current data.
+### Authentication & Profiles
+- **Email/password** and **Google OAuth** via AWS Cognito
+- **Profile page**: View created boards, edit titles/phrases, manage visibility
+- **Play session history**: Resume past games from profile
+- **Empty state guidance**: New users see "Create a board" prompt
+
+### Mobile-Responsive Design
+- **Mobile-first**: Full-width buttons, optimized spacing, stacked layouts
+- **Responsive breakpoints**: Adapts at sm (640px), md (768px), lg (1024px)
+- **Auto-sizing cells**: Bingo grid adjusts to screen size and phrase count
+- **Touch-friendly**: Large tap targets, smooth animations
+
+## Data Models (DynamoDB via GraphQL)
+- **PhraseSet**: Custom bingo boards with title, phrases, ratings, ownership
+- **PlaySession**: Saved game states with board snapshots and checked cells
+- **Rating**: One rating per user per phrase set (prevents duplicates)
+- **PhraseTemplate**: Cached phrase suggestions by genre
+- **Profile**: User info from Cognito (display name, email)
+
+## Architecture Highlights
+- **LocalStorage for guests**: Game state persists without authentication
+- **React Query**: Smart caching, optimistic updates, auto-refetch
+- **TanStack Router**: Type-safe routes with loaders for data prefetching
+- **API Key auth**: Allows guest access, easy migration to user-based auth later
+- **Bayesian rating sort**: Balances rating quality with vote count
+
+## Deployment
+- **Git push** → Amplify Hosting builds and deploys automatically
+- **Frontend-only builds**: ~2 minutes
+- **Backend + frontend**: ~9 minutes (CloudFormation updates)
+- **Deployment logs**: Saved in `deployment-logs/` for debugging
+
+See `explanation.md` for complete architecture documentation.
