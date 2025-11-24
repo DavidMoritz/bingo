@@ -11,9 +11,19 @@ import { saveGuestGameState, loadGuestGameState, clearGuestGameState } from '../
 
 // Hyphenate text with soft hyphens for better wrapping
 async function hyphenateText(text: string): Promise<string> {
-  const words = text.split(' ')
-  const hyphenatedWords = await Promise.all(words.map(word => hyphenate(word)))
-  return hyphenatedWords.join(' ')
+  try {
+    // Skip hyphenation for very long text (> 100 chars) to avoid performance issues
+    if (text.length > 100) {
+      return text
+    }
+    const words = text.split(' ')
+    const hyphenatedWords = await Promise.all(words.map(word => hyphenate(word)))
+    return hyphenatedWords.join(' ')
+  } catch (error) {
+    // Fallback to original text if hyphenation fails
+    console.warn('Hyphenation failed:', error)
+    return text
+  }
 }
 
 function useAutoFitText(text: string, containerRef: React.RefObject<HTMLElement>) {
@@ -428,12 +438,17 @@ type BingoCellProps = {
 
 function BingoCell({ text, selected, isFree, onClick }: BingoCellProps) {
   const cellRef = useRef<HTMLButtonElement>(null)
-  const [hyphenatedText, setHyphenatedText] = useState(text)
-  const fontSize = useAutoFitText(text, cellRef as React.RefObject<HTMLElement>)
+  const MAX_DISPLAY_LENGTH = 65
+  const displayText = text.length > MAX_DISPLAY_LENGTH ? text.slice(0, MAX_DISPLAY_LENGTH) + '…' : text
+  const [hyphenatedText, setHyphenatedText] = useState(displayText)
+  const fontSize = useAutoFitText(displayText, cellRef as React.RefObject<HTMLElement>)
 
   useEffect(() => {
-    hyphenateText(text).then(setHyphenatedText)
-  }, [text])
+    hyphenateText(displayText).then(setHyphenatedText).catch(() => {
+      // Fallback to original text if hyphenation fails
+      setHyphenatedText(displayText)
+    })
+  }, [displayText])
 
   return (
     <button

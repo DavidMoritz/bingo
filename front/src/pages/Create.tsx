@@ -122,6 +122,10 @@ export function CreatePage() {
     .map((phrase) => phrase.trim())
     .filter(Boolean)
 
+  const MAX_PHRASE_LENGTH = 65
+  const tooLongPhrases = phrases.filter(p => p.length > MAX_PHRASE_LENGTH)
+  const hasOverlongPhrases = tooLongPhrases.length > 0
+
   const gridSize =
     phrases.length < 4 ? 1 : phrases.length < 9 ? 2 : phrases.length < 16 ? 3 : phrases.length < 24 ? 4 : 5
   const nextThreshold =
@@ -459,10 +463,17 @@ export function CreatePage() {
               }}
               placeholder="Each line becomes a cell"
             />
-            <p className="text-xs text-slate-400">
-              Currently {phrases.length} phrase{phrases.length === 1 ? '' : 's'}: {gridSize}×{gridSize} grid
-              {nextThreshold ? ` — ${neededForNext} needed for ${gridSize + 1}×${gridSize + 1}.` : ''}
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-400">
+                Currently {phrases.length} phrase{phrases.length === 1 ? '' : 's'}: {gridSize}×{gridSize} grid
+                {nextThreshold ? ` — ${neededForNext} needed for ${gridSize + 1}×${gridSize + 1}.` : ''}
+              </p>
+              {hasOverlongPhrases && (
+                <p className="text-xs text-amber-300">
+                  ℹ {tooLongPhrases.length} phrase{tooLongPhrases.length === 1 ? '' : 's'} over 65 characters will be truncated on display.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className={`grid gap-3 ${hasProfanity ? '' : 'sm:grid-cols-2'}`}>

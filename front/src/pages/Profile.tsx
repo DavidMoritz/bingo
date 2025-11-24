@@ -63,6 +63,11 @@ export function ProfilePage() {
     [title, phrases]
   )
 
+  // Check for overlong phrases
+  const MAX_PHRASE_LENGTH = 65
+  const tooLongPhrases = useMemo(() => phrases.filter(p => p.length > MAX_PHRASE_LENGTH), [phrases])
+  const hasOverlongPhrases = tooLongPhrases.length > 0
+
   // Sort boards by rating (descending), then by creation date (descending)
   const sortedSets = useMemo(() => {
     if (!mySets) return []
@@ -247,7 +252,14 @@ export function ProfilePage() {
                 value={phrasesText}
                 onChange={(e) => setPhrasesText(e.target.value)}
               />
-              <p className="text-xs text-slate-400">{parseLines(phrasesText).length} phrases</p>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-400">{parseLines(phrasesText).length} phrases</p>
+                {hasOverlongPhrases && (
+                  <p className="text-xs text-amber-300">
+                    ℹ {tooLongPhrases.length} phrase{tooLongPhrases.length === 1 ? '' : 's'} over 65 characters will be truncated on display.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className={`grid gap-3 ${hasProfanity ? '' : 'sm:grid-cols-2'}`}>
