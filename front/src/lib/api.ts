@@ -418,3 +418,8 @@ export async function fetchMySessions(profileId: string): Promise<PlaySession[]>
     return dateB - dateA
   })
 }
+
+export async function deletePlaySession(id: string): Promise<void> {
+  const client = getDataClient()
+  await client.models.PlaySession.delete({ id })
+}

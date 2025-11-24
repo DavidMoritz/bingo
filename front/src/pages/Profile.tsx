@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { fetchMyPhraseSets, fetchMySessions, orphanPhraseSet, updatePhraseSet } from '../lib/api'
+import { fetchMyPhraseSets, fetchMySessions, orphanPhraseSet, updatePhraseSet, deletePlaySession } from '../lib/api'
 import type { PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
 import { contentHasProfanity } from '../lib/profanity'
@@ -40,6 +40,8 @@ export function ProfilePage() {
   const [shareStatus, setShareStatus] = useState<Record<string, 'idle' | 'copied' | 'error'>>({})
   const [showToast, setShowToast] = useState(false)
   const editorRef = useRef<HTMLElement>(null)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (editing) {
@@ -106,6 +108,25 @@ export function ProfilePage() {
       refetchSessions()
     },
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: deletePlaySession,
+    onSuccess: () => {
+      refetchSessions()
+    },
+  })
+
+  async function handleDeleteSession(id: string) {
+    // Add to deleting set for fade animation
+    setDeletingIds(prev => new Set(prev).add(id))
+
+    // Wait for fade animation (1 second)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Actually delete from database
+    // Keep in deletingIds until refetch completes - the item will be gone from sessions list
+    deleteMutation.mutate(id)
+  }
 
   async function handleShare(set: PhraseSet) {
     const shareUrl = `${window.location.origin}/game/${set.code}`
@@ -329,36 +350,76 @@ export function ProfilePage() {
 
       <section className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 text-slate-200 shadow-xl shadow-black/30 lg:col-span-2">
         <header className="mb-3 space-y-1">
-          <p className="text-xs uppercase tracking-[0.3em] text-teal-300">History</p>
-          <h3 className="text-xl font-semibold text-white">Play sessions</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-teal-300">History</p>
+              <h3 className="text-xl font-semibold text-white">
+                Play sessions
+                {deleteMode && (
+                  <small className="block sm:inline-block text-xs font-medium text-rose-300 sm:ml-8">
+                    Permanently delete a session. This cannot be undone
+                  </small>
+                )}
+              </h3>
+            </div>
+            <button
+              onClick={() => setDeleteMode(!deleteMode)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                deleteMode
+                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
+              }`}
+            >
+              {deleteMode ? 'Done' : 'Delete'}
+            </button>
+          </div>
         </header>
         <div className="grid gap-3 sm:grid-cols-3">
           {(sessions ?? []).map((s: PlaySession) => {
             const totalCells = s.gridSize * s.gridSize
+            const isDeleting = deletingIds.has(s.id)
+
             return (
-              <Link
-                to="/session/$id"
-                params={{ id: s.id }}
+              <div
                 key={s.id}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
+                className={`relative w-full h-full ${
+                  isDeleting ? 'opacity-0 transition-opacity duration-1000' : ''
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-white">{s.phraseSetTitle || s.phraseSetCode}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">
-                    {s.checkedCells.length}/{totalCells}
-                  </span>
+                  <Link
+                    to="/session/$id"
+                    params={{ id: s.id }}
+                    className="flex flex-col h-full w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">{s.phraseSetTitle || s.phraseSetCode}</span>
+                      <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">
+                        {s.checkedCells.length}/{totalCells}
+                      </span>
+                    </div>
+                    {s.notes && (
+                      <p className="mt-2 text-xs text-slate-300 line-clamp-2 italic">
+                        "{s.notes}"
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {formatSessionDate(s.createdAt)}
+                    </p>
+                  </Link>
+                  {deleteMode && (
+                    <button
+                      onClick={() => handleDeleteSession(s.id)}
+                      className="absolute right-2 bottom-2 rounded-lg bg-rose-500 p-2 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
+                      aria-label="Delete session"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-                {s.notes && (
-                  <p className="mt-2 text-xs text-slate-300 line-clamp-2 italic">
-                    "{s.notes}"
-                  </p>
-                )}
-                <p className="mt-1 text-xs text-slate-400">
-                  {formatSessionDate(s.createdAt)}
-                </p>
-              </Link>
-            )
-          })}
+              )
+            })}
         </div>
       </section>
 

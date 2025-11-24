@@ -72,7 +72,7 @@ export function toggleCell(board: BingoBoard, cellId: string): BingoBoard {
   return {
     ...board,
     cells: board.cells.map((cell) =>
-      cell.id === cellId && !cell.isFree ? { ...cell, selected: !cell.selected } : cell
+      cell.id === cellId ? { ...cell, selected: !cell.selected } : cell
     ),
   }
 }
