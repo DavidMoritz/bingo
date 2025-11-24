@@ -174,7 +174,9 @@ export function ProfilePage() {
             >
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-white">{set.title}</div>
-                <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">{set.code}</span>
+                <a href={`${window.location.origin}/game/${set.code}`}>
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">{set.code}</span>
+                </a>
               </div>
               <div className="mt-2 flex items-center gap-1">
                 {set.ratingCount > 0 ? (

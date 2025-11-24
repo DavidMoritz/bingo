@@ -1,21 +1,54 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { loadGuestGameState } from '../lib/guestStorage'
 import type { GuestGameState } from '../lib/guestStorage'
-
-const featureCards = [
-  { title: 'Create', description: '⚡ Spark a game in seconds—instant codes, zero hassle.' },
-  { title: 'Join', description: '⚡ Punch in a code, get your board. Lightning fast.' },
-  { title: 'Play', description: '⚡ Tap to win. Track the action with instant feedback.' },
-]
+import { useUserInfo } from '../contexts/UserContext'
+import { useQuery } from '@tanstack/react-query'
+import { fetchMySessions } from '../lib/api'
 
 export function HomePage() {
+  const navigate = useNavigate()
+  const { profileId } = useUserInfo()
   const [guestSession, setGuestSession] = useState<GuestGameState | null>(null)
+
+  const { data: sessions } = useQuery({
+    queryKey: ['my-sessions', profileId],
+    queryFn: () => fetchMySessions(profileId),
+    enabled: Boolean(profileId),
+  })
 
   useEffect(() => {
     const saved = loadGuestGameState()
     setGuestSession(saved)
   }, [])
+
+  const handlePlayClick = () => {
+    if (sessions && sessions.length > 0) {
+      // Navigate to most recent session
+      navigate({ to: '/session/$id', params: { id: sessions[0].id } })
+    } else {
+      // No sessions, go to join
+      navigate({ to: '/join' })
+    }
+  }
+
+  const featureCards = [
+    {
+      title: 'Create',
+      description: '⚡ Spark a game in seconds—instant codes, zero hassle.',
+      onClick: () => navigate({ to: '/create' })
+    },
+    {
+      title: 'Join',
+      description: '⚡ Punch in a code, get your board. Lightning fast.',
+      onClick: () => navigate({ to: '/join' })
+    },
+    {
+      title: 'Play',
+      description: '⚡ Tap to win. Track the action with instant feedback.',
+      onClick: handlePlayClick
+    },
+  ]
   return (
     <div className="space-y-10">
       <section className="rounded-3xl bg-white/5 p-4 sm:p-8 shadow-2xl ring-1 ring-white/10">
@@ -69,13 +102,14 @@ export function HomePage() {
 
       <section className="grid gap-4 sm:grid-cols-3">
         {featureCards.map((card) => (
-          <div
+          <button
             key={card.title}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:px-6 md:px-8 md:py-6 text-sm text-slate-200 shadow-lg shadow-black/30"
+            onClick={card.onClick}
+            className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:px-6 md:px-8 md:py-6 text-sm text-slate-200 shadow-lg shadow-black/30 text-left transition hover:bg-white/10 hover:border-white/20"
           >
             <h3 className="text-lg font-semibold text-white">{card.title}</h3>
             <p className="mt-2 leading-relaxed text-slate-300">{card.description}</p>
-          </div>
+          </button>
         ))}
       </section>
     </div>

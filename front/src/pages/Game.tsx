@@ -373,7 +373,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Can you make this better?</p>
             <p className="mt-1 text-sm text-slate-300">

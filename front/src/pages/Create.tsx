@@ -98,7 +98,7 @@ export function CreatePage() {
 
       if (isPhraseDirty) {
         const existing = parseLines(phrasesText)
-        const merged = mergeSuggestions(existing, phrases, 30)
+        const merged = mergeSuggestionsNoLimit(existing, phrases)
         setPhrasesText(merged.join('\n'))
       } else {
         setPhrasesText(phrases.join('\n'))
@@ -278,7 +278,7 @@ export function CreatePage() {
       .filter(Boolean)
   }
 
-  function mergeSuggestions(existing: string[], suggestions: string[], limit: number): string[] {
+  function mergeSuggestionsNoLimit(existing: string[], suggestions: string[]): string[] {
     const seen = new Set(existing.map((p) => p.toLowerCase()))
     const combined = [...existing]
 
@@ -287,10 +287,9 @@ export function CreatePage() {
       if (seen.has(key)) continue
       combined.push(suggestion)
       seen.add(key)
-      if (combined.length >= limit) break
     }
 
-    return combined.slice(0, limit)
+    return combined
   }
 
   async function handleShare() {
@@ -468,7 +467,7 @@ export function CreatePage() {
 
           <div className={`grid gap-3 ${hasProfanity ? '' : 'sm:grid-cols-2'}`}>
             {!hasProfanity && (
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 transition hover:border-white/20 hover:bg-white/10">
                 <input
                   type="checkbox"
                   className="h-4 w-4 accent-teal-300"
@@ -481,7 +480,7 @@ export function CreatePage() {
                 </span>
               </label>
             )}
-            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 hover:border-white/20">
+            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 transition hover:border-white/20 hover:bg-white/10">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-teal-300"
@@ -534,10 +533,16 @@ export function CreatePage() {
             <p className="text-xs text-slate-400">Phrases: {result.phrases.length}</p>
             <button
               onClick={handleShare}
-              className="mt-2 w-full rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-1px] hover:bg-teal-300"
+              className="mt-2 w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-teal-200 transition hover:bg-white/20"
             >
               {shareStatus === 'copied' ? '✓ Link copied!' : shareStatus === 'error' ? 'Error sharing' : 'Share game'}
             </button>
+            <a
+              href={`${window.location.origin}/game/${result.code}`}
+              className="mt-2 block w-full rounded-xl bg-teal-400 px-4 py-2.5 text-center text-sm font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-1px]"
+            >
+              Play Now!
+            </a>
           </div>
         ) : null}
       </aside>
