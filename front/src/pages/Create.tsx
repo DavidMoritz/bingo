@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuthenticator } from '@aws-amplify/ui-react'
-import { useSearch } from '@tanstack/react-router'
+import { Link, useSearch } from '@tanstack/react-router'
 import { createPhraseSet, suggestPhrases, listAvailableGenres } from '../lib/api'
 import type { PhraseSet } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
@@ -548,12 +548,13 @@ export function CreatePage() {
             >
               {shareStatus === 'copied' ? '✓ Link copied!' : shareStatus === 'error' ? 'Error sharing' : 'Share game'}
             </button>
-            <a
-              href={`${window.location.origin}/game/${result.code}`}
+            <Link
+              to="/game/$code"
+              params={{ code: result.code }}
               className="mt-2 block w-full rounded-xl bg-teal-400 px-4 py-2.5 text-center text-sm font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-1px]"
             >
               Play Now!
-            </a>
+            </Link>
           </div>
         ) : null}
       </aside>

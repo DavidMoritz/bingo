@@ -179,9 +179,9 @@ export function ProfilePage() {
             >
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-white">{set.title}</div>
-                <a href={`${window.location.origin}/game/${set.code}`}>
-                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200">{set.code}</span>
-                </a>
+                <Link to="/game/$code" params={{ code: set.code }}>
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-teal-200 transition hover:text-teal-100">{set.code}</span>
+                </Link>
               </div>
               <div className="mt-2 flex items-center gap-1">
                 {set.ratingCount > 0 ? (
@@ -337,8 +337,9 @@ export function ProfilePage() {
           {(sessions ?? []).map((s: PlaySession) => {
             const totalCells = s.gridSize * s.gridSize
             return (
-              <a
-                href={`/session/${s.id}`}
+              <Link
+                to="/session/$id"
+                params={{ id: s.id }}
                 key={s.id}
                 className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 transition hover:-translate-y-[1px] hover:border-teal-300/60 hover:bg-white/10"
               >
@@ -351,7 +352,7 @@ export function ProfilePage() {
                 <p className="mt-1 text-xs text-slate-400">
                   {formatSessionDate(s.createdAt)}
                 </p>
-              </a>
+              </Link>
             )
           })}
         </div>
