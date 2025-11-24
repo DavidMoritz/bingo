@@ -73,6 +73,7 @@ export function CreatePage() {
   const [showPhraseHelp, setShowPhraseHelp] = useState(false)
   const [isPhraseDirty, setIsPhraseDirty] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle')
+  const [showToast, setShowToast] = useState(false)
 
   const mutation = useMutation({
     mutationFn: (input: {
@@ -308,25 +309,24 @@ export function CreatePage() {
         await navigator.share({
           text: shareText,
         })
-        setShareStatus('idle')
+        return
       } catch (err) {
-        // User cancelled or error occurred
-        if ((err as Error).name !== 'AbortError') {
-          console.error('Share failed:', err)
-          setShareStatus('error')
+        // User cancelled or error occurred - fall through to clipboard
+        if ((err as Error).name === 'AbortError') {
+          return // User cancelled, don't show error
         }
       }
-    } else {
-      // Fallback: copy link to clipboard with message
-      try {
-        await navigator.clipboard.writeText(shareText)
-        setShareStatus('copied')
-        setTimeout(() => setShareStatus('idle'), 2000)
-      } catch (err) {
-        console.error('Copy failed:', err)
-        setShareStatus('error')
-        setTimeout(() => setShareStatus('idle'), 2000)
-      }
+    }
+
+    // Fallback: copy link to clipboard with toast
+    try {
+      await navigator.clipboard.writeText(shareText)
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+    } catch (err) {
+      console.error('Copy failed:', err)
+      setShareStatus('error')
+      setTimeout(() => setShareStatus('idle'), 2000)
     }
   }
 
@@ -598,6 +598,14 @@ export function CreatePage() {
           </div>
         </div>
       ) : null}
+
+      {showToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="rounded-xl border border-white/15 bg-white/10 px-6 py-3 shadow-lg backdrop-blur-sm">
+            <p className="text-sm font-semibold text-teal-200">Link copied to clipboard!</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
