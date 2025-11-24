@@ -39,6 +39,7 @@ const schema = a.schema({
       usesFreeCenter: a.boolean().required(),
       boardSnapshot: a.json().required(), // phrases placed at play time
       checkedCells: a.integer().array(), // indices checked during play
+      notes: a.string(), // optional notes for the session
       createdAt: a.datetime().required(),
     })
     .identifier(['id'])

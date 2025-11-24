@@ -36,5 +36,6 @@ export type PlaySession = {
   usesFreeCenter: boolean
   boardSnapshot: { text: string; isFree?: boolean }[]
   checkedCells: number[]
+  notes?: string
   createdAt: string
 }

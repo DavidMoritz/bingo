@@ -3,7 +3,7 @@ import type { BingoBoard, BingoCell, PhraseSet } from '../types'
 export function createBingoBoard(phraseSet: PhraseSet, useFreeCenter = true): BingoBoard {
   const parsed = phraseSet.phrases
     .map(parsePhrase)
-    .filter((item): item is ParsedPhrase => Boolean(item && item.text.trim().length > 0))
+    .filter((item): item is ParsedPhrase => Boolean(item && item.text.trim().length > 0 && item.text.toUpperCase() !== 'FREE'))
 
   const gridSize = pickGridSize(parsed.length)
   const allowFreeCenter = useFreeCenter && gridSize === 5

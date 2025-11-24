@@ -348,6 +348,11 @@ export function ProfilePage() {
                     {s.checkedCells.length}/{totalCells}
                   </span>
                 </div>
+                {s.notes && (
+                  <p className="mt-2 text-xs text-slate-300 line-clamp-2 italic">
+                    "{s.notes}"
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-slate-400">
                   {formatSessionDate(s.createdAt)}
                 </p>

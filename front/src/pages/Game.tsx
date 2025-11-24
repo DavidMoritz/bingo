@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useNavigate } from '@tanstack/react-router'
 import { createBingoBoard, toggleCell } from '../lib/bingo'
-import { submitRating, createPlaySession, updatePlaySessionChecked, claimOwnership, fetchUserRating } from '../lib/api'
+import { submitRating, createPlaySession, updatePlaySessionChecked, updatePlaySession, claimOwnership, fetchUserRating } from '../lib/api'
 import type { BingoBoard, PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
 import { hyphenate } from 'hyphen/en'
@@ -138,6 +138,7 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   });
   const [currentSet, setCurrentSet] = useState<PhraseSet | null>(initialPhraseSet)
   const [sessionId, setSessionId] = useState<string | null>(session?.id ?? null)
+  const [notes, setNotes] = useState<string>(session?.notes ?? '')
   const [showToast, setShowToast] = useState(false)
   const hasCreatedSession = useRef(false)
 
@@ -149,6 +150,10 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
   })
 
   const selectedCount = useMemo(() => (board ? board.cells.filter((c) => c.selected).length : 0), [board])
+
+  useEffect(() => {
+    console.log('Session state:', { sessionId, ownerProfileId, hasSession: Boolean(sessionId && ownerProfileId) })
+  }, [sessionId, ownerProfileId])
 
   useEffect(() => {
     async function ensureSession() {
@@ -221,10 +226,13 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
     })
   }
 
-  function reshuffle() {
-    if (!currentSet) return
-    setSessionId(null)
-    hasCreatedSession.current = false
+  async function reshuffle() {
+    if (!currentSet || !board) return
+
+    // Check if any cells are selected (excluding free cells)
+    const selectedCount = board.cells.filter((c) => c.selected && !c.isFree).length
+    const hasSelections = selectedCount > 0
+
     const newBoard = createBingoBoard(currentSet, currentSet.freeSpace)
     setBoard(newBoard)
 
@@ -239,6 +247,28 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
         checkedCells: [],
         lastUpdated: new Date().toISOString(),
       })
+      return
+    }
+
+    // For logged-in users: if no selections, update existing session; otherwise create new
+    if (!hasSelections && sessionId) {
+      // Update existing session with new board
+      try {
+        await updatePlaySession(sessionId, {
+          profileId: ownerProfileId,
+          gridSize: newBoard.gridSize,
+          usesFreeCenter: newBoard.usesFreeCenter,
+          boardSnapshot: newBoard.cells.map((c) => ({ text: c.text, isFree: c.isFree })),
+          checkedCells: [],
+        })
+        // Session ID stays the same
+      } catch (error) {
+        console.error('Failed to update session:', error)
+      }
+    } else {
+      // Create new session on next cell click
+      setSessionId(null)
+      hasCreatedSession.current = false
     }
   }
 
@@ -379,6 +409,38 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           />
         ))}
       </div>
+
+      {ownerProfileId && sessionId && (
+        <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4 space-y-2">
+          <label className="text-xs uppercase tracking-[0.3em] text-teal-300" htmlFor="session-notes">
+            Session Notes
+          </label>
+          <textarea
+            id="session-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={async () => {
+              if (sessionId && ownerProfileId) {
+                console.log('Saving notes:', { sessionId, notes })
+                try {
+                  await updatePlaySession(sessionId, {
+                    profileId: ownerProfileId,
+                    notes,
+                  })
+                  console.log('Notes saved successfully')
+                } catch (error) {
+                  console.error('Failed to save notes:', error)
+                }
+              } else {
+                console.log('Cannot save notes - missing sessionId or profileId:', { sessionId, ownerProfileId })
+              }
+            }}
+            placeholder="Add notes about this game session..."
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white shadow-inner shadow-black/40 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50 min-h-[80px]"
+          />
+          <p className="text-xs text-slate-400">Notes are saved automatically when you leave this field</p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
         <div className="flex items-center justify-between gap-4">

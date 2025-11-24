@@ -1,7 +1,7 @@
 import { Amplify } from 'aws-amplify'
 import { generateClient } from 'aws-amplify/data'
 import type { PhraseSet, PlaySession } from '../types'
-import outputs from '../amplify_outputs.json'
+import outputs from '../../../amplify_outputs.json'
 import { contentHasProfanity } from './profanity'
 
 let dataClient: any
@@ -330,6 +330,7 @@ export async function createPlaySession(input: {
   usesFreeCenter: boolean
   boardSnapshot: { text: string; isFree?: boolean }[]
   checkedCells: number[]
+  notes?: string
 }): Promise<PlaySession> {
   const client = getDataClient()
   console.log('Creating PlaySession with input:', input)
@@ -352,6 +353,34 @@ export async function updatePlaySessionChecked(
     profileId: input.profileId,
     checkedCells: input.checkedCells,
   })
+  if (!res?.data) throw new Error('Failed to update session')
+  return res.data as PlaySession
+}
+
+export async function updatePlaySession(
+  id: string,
+  input: {
+    profileId: string
+    gridSize?: number
+    usesFreeCenter?: boolean
+    boardSnapshot?: { text: string; isFree?: boolean }[]
+    checkedCells?: number[]
+    notes?: string
+  }
+): Promise<PlaySession> {
+  const client = getDataClient()
+  const updateData: any = {
+    id,
+    profileId: input.profileId,
+  }
+
+  if (input.gridSize !== undefined) updateData.gridSize = input.gridSize
+  if (input.usesFreeCenter !== undefined) updateData.usesFreeCenter = input.usesFreeCenter
+  if (input.boardSnapshot !== undefined) updateData.boardSnapshot = JSON.stringify(input.boardSnapshot)
+  if (input.checkedCells !== undefined) updateData.checkedCells = input.checkedCells
+  if (input.notes !== undefined) updateData.notes = input.notes
+
+  const res = await client.models.PlaySession.update(updateData)
   if (!res?.data) throw new Error('Failed to update session')
   return res.data as PlaySession
 }

@@ -132,4 +132,40 @@ describe('createBingoBoard phrase handling', () => {
     const duplicateCount = texts.filter(t => t === 'duplicate').length
     expect(duplicateCount).toBe(1)
   })
+
+  it('only has one FREE cell in center when phrase set contains "FREE" as a phrase', () => {
+    // Create a 5x5 board with "FREE" as one of the phrases
+    const phrases = [
+      'FREE',
+      ...Array.from({ length: 30 }, (_, i) => `phrase-${i}`)
+    ]
+    const board = createBingoBoard(makeSet(phrases))
+
+    // Count how many cells have "FREE" text
+    const freeCells = board.cells.filter(c => c.text === 'FREE')
+
+    // Should only have one FREE cell (the center)
+    expect(freeCells).toHaveLength(1)
+
+    // The FREE cell should be marked as isFree and should be in the center
+    const centerIndex = Math.floor((25) / 2)
+    expect(board.cells[centerIndex]?.text).toBe('FREE')
+    expect(board.cells[centerIndex]?.isFree).toBe(true)
+  })
+
+  it('filters out "FREE" in any case variation from phrases', () => {
+    const phrases = [
+      'FREE',
+      'Free',
+      'free',
+      'FrEe',
+      ...Array.from({ length: 30 }, (_, i) => `phrase-${i}`)
+    ]
+    const board = createBingoBoard(makeSet(phrases))
+
+    // Should only have 1 FREE (the center), not 5
+    const freeCells = board.cells.filter(c => c.text.toUpperCase() === 'FREE')
+    expect(freeCells).toHaveLength(1)
+    expect(freeCells[0]?.isFree).toBe(true)
+  })
 })
