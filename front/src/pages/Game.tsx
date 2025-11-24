@@ -319,11 +319,9 @@ export function GamePage({ phraseSet, session }: GamePageProps) {
           </p>
           <p className="text-xs text-slate-400">
             Created by:{' '}
-            {currentSet.ownerDisplayName
-              ? currentSet.ownerDisplayName
-              : currentSet.ownerProfileId !== 'guest'
-              ? 'Anonymous user'
-              : 'guest'}
+            {currentSet.ownerProfileId === 'guest'
+              ? 'Guest'
+              : (currentSet.ownerDisplayName || 'anonymous user')}
             {ownerProfileId && currentSet.ownerProfileId === 'guest' ? (
               <button
                 className="ml-2 text-teal-300 underline"

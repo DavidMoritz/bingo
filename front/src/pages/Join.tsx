@@ -97,7 +97,7 @@ export function JoinPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search title, code, or phrase"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white shadow-inner shadow-black/30 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50 sm:w-64"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white shadow-inner shadow-black/30 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50 sm:w-64"
             />
             <button
               type="submit"

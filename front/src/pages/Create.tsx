@@ -21,6 +21,7 @@ export function CreatePage() {
   const [title, setTitle] = useState('Bingo Bolt')
   const [isTitleDirty, setIsTitleDirty] = useState(false)
   const [genre, setGenre] = useState('')
+  const [lastSubmittedGenre, setLastSubmittedGenre] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [freeSpace, setFreeSpace] = useState(true)
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -65,7 +66,7 @@ export function CreatePage() {
       )
     : availableGenres.filter((g) => !containsProfanity(g))
   const [phrasesText, setPhrasesText] = useState(
-    ['AI-powered', 'Runway', 'Synergy', 'Pivot', 'We are different', 'Let me circle back', 'Can we park this?'].join(
+    [''].join(
       '\n'
     )
   )
@@ -183,6 +184,7 @@ export function CreatePage() {
     }
 
     setShowSuggestions(false)
+    setLastSubmittedGenre(trimmedGenre)
 
     // Start progress bar animation (15 seconds)
     setProgress(0)
@@ -337,7 +339,7 @@ export function CreatePage() {
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Creator</p>
             <h2 className="text-2xl font-bold text-white">Create a board</h2>
-            <p className="text-sm text-slate-300">Add a title and paste phrases, one per line.</p>
+            <p className="text-sm text-slate-300">Let Bingo Bolt suggest some starting phrases for you</p>
           </div>
           <span className="hidden rounded-full bg-teal-400/20 px-3 py-1 text-xs font-semibold text-teal-200">
             POST /phrase-sets
@@ -347,7 +349,7 @@ export function CreatePage() {
         <form onSubmit={handleSuggest} className="mb-4 space-y-3" aria-label="Suggest Phrases Form">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-200" htmlFor="genre">
-              Genre
+              What's the card for?
             </label>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative w-full sm:max-w-sm">
@@ -387,7 +389,11 @@ export function CreatePage() {
               </div>
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  genre.trim() && genre.trim() !== lastSubmittedGenre
+                    ? "inline-flex items-center justify-center rounded-xl bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
+                    : "inline-flex items-center justify-center rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                }
                 disabled={suggestMutation.isPending}
               >
                 {suggestMutation.isPending ? 'Generating…' : 'Suggest phrases'}
@@ -461,7 +467,8 @@ export function CreatePage() {
                 setIsPhraseDirty(true)
                 setPhrasesText(e.target.value)
               }}
-              placeholder="Each line becomes a cell"
+              placeholder="Each line becomes a Bingo card cell"
+              required
             />
             <div className="space-y-1">
               <p className="text-xs text-slate-400">

@@ -77,4 +77,59 @@ describe('createBingoBoard phrase handling', () => {
     expect(board.usesFreeCenter).toBe(false)
     expect(board.cells.some((c) => c.isFree)).toBe(false)
   })
+
+  it('selects different phrases when phrase set has 50+ phrases', () => {
+    // Create a set with 60 phrases (more than the 24 needed for 5x5)
+    const phrases = Array.from({ length: 60 }, (_, i) => `phrase-${i}`)
+    const board1 = createBingoBoard(makeSet(phrases))
+    const board2 = createBingoBoard(makeSet(phrases))
+
+    // Both should be 5x5 grids
+    expect(board1.gridSize).toBe(5)
+    expect(board2.gridSize).toBe(5)
+
+    // Should have 24 non-free cells
+    const nonFreeCells1 = board1.cells.filter(c => !c.isFree)
+    const nonFreeCells2 = board2.cells.filter(c => !c.isFree)
+    expect(nonFreeCells1).toHaveLength(24)
+    expect(nonFreeCells2).toHaveLength(24)
+
+    // All cells should have phrases from the original set
+    nonFreeCells1.forEach(cell => {
+      expect(phrases).toContain(cell.text)
+    })
+  })
+
+  it('always includes priority phrases even with 50+ total phrases', () => {
+    const phrases = [
+      '*MustHave1',
+      '*MustHave2',
+      ...Array.from({ length: 60 }, (_, i) => `regular-${i}`)
+    ]
+    const board = createBingoBoard(makeSet(phrases))
+    const texts = board.cells.map(c => c.text)
+
+    expect(texts).toContain('MustHave1')
+    expect(texts).toContain('MustHave2')
+  })
+
+  it('handles OR syntax in phrases', () => {
+    const board = createBingoBoard(makeSet(['Option A | Option B | Option C']))
+    const cellText = board.cells[0]?.text
+    expect(['Option A', 'Option B', 'Option C']).toContain(cellText)
+  })
+
+  it('strips asterisk from priority phrases in final board', () => {
+    const board = createBingoBoard(makeSet(['*Priority phrase', 'regular']))
+    const texts = board.cells.map(c => c.text)
+    expect(texts).toContain('Priority phrase')
+    expect(texts).not.toContain('*Priority phrase')
+  })
+
+  it('deduplicates phrases', () => {
+    const board = createBingoBoard(makeSet(['duplicate', 'duplicate', 'unique', 'another']))
+    const texts = board.cells.map(c => c.text)
+    const duplicateCount = texts.filter(t => t === 'duplicate').length
+    expect(duplicateCount).toBe(1)
+  })
 })
