@@ -1,4 +1,4 @@
-import { Link, Outlet } from '@tanstack/react-router'
+import { Link, Outlet, useLocation } from '@tanstack/react-router'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { useEffect, useState } from 'react'
 import { fetchUserAttributes } from 'aws-amplify/auth'
@@ -6,7 +6,9 @@ import { UserProvider } from './contexts/UserContext'
 
 function AppLayout() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
+  const location = useLocation()
   const [attributes, setAttributes] = useState<Record<string, string> | null>(null)
+  const isHomePage = location.pathname === '/'
 
   useEffect(() => {
     let mounted = true
@@ -47,7 +49,15 @@ function AppLayout() {
         <header className="border-b border-white/5 bg-white/5 backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
             <Link to="/" className="group inline-flex items-center gap-2 text-lg font-semibold">
-              <span className="h-2 w-2 rounded-full bg-teal-400 transition group-hover:scale-125" />
+              {isHomePage ? (
+                <span className="h-2 w-2 rounded-full bg-teal-400 transition group-hover:scale-125" />
+              ) : (
+                <img
+                  src="/logo_alpha.svg"
+                  alt="Logo"
+                  className="h-6 w-6 transition group-hover:scale-110"
+                />
+              )}
               Bingo Bolt
             </Link>
             <nav className="flex flex-wrap items-center justify-end gap-1 text-sm font-medium text-slate-200 sm:gap-4">

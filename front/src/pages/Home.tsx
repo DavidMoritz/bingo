@@ -52,12 +52,17 @@ export function HomePage() {
   return (
     <div className="space-y-10">
       <section className="rounded-3xl bg-white/5 p-4 sm:p-8 shadow-2xl ring-1 ring-white/10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-4 lg:max-w-2xl">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-4 md:max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-300">
               Vite + TanStack Router + Tailwind
             </p>
             <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl">
+              <img
+                src="/logo_alpha.png"
+                alt="Bingo Builder Logo"
+                className="sm:hidden inline float-end w-full max-w-[100px] h-auto"
+              />
               Lightning-fast custom bingo boards. Share in a flash.
             </h1>
             <p className="text-lg text-slate-200">
@@ -87,15 +92,12 @@ export function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-5 gap-2 rounded-2xl bg-slate-900/70 p-4 text-center text-sm font-semibold text-slate-200 ring-1 ring-white/10">
-            {Array.from({ length: 25 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border border-white/10 bg-white/5 px-2 py-3 text-xs uppercase tracking-wide text-white/80"
-              >
-                {idx === 12 ? '☆' : '★'}
-              </div>
-            ))}
+          <div className="hidden sm:flex items-center justify-center">
+            <img
+              src="/logo_alpha.png"
+              alt="Bingo Builder Logo"
+              className="w-full max-w-[240px] md:max-w-sm lg:max-w-md xl:max-w-lg h-auto"
+            />
           </div>
         </div>
       </section>

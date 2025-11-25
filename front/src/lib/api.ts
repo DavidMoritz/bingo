@@ -251,6 +251,42 @@ export async function listAvailableGenres(): Promise<string[]> {
   return templates.map((t: { genre: string }) => t.genre).sort()
 }
 
+export async function searchGenres(query: string, limit = 50): Promise<string[]> {
+  const client = getDataClient()
+  const normalizedQuery = query.trim().toLowerCase()
+
+  if (!normalizedQuery) {
+    // If empty query, return all genres (limited)
+    const res = await client.models.PhraseTemplate.list({ limit })
+    const templates = res?.data ?? []
+    const genres = templates.map((t: { genre: string }) => t.genre)
+    return sanitizeGenres(genres)
+  }
+
+  // Use Amplify filter to search server-side
+  const res = await client.models.PhraseTemplate.list({
+    filter: {
+      genre: { contains: normalizedQuery }
+    },
+    limit: limit
+  })
+
+  const templates = res?.data ?? []
+  const genres = templates.map((t: { genre: string }) => t.genre)
+
+  return sanitizeGenres(genres)
+}
+
+function sanitizeGenres(genres: string[]): string[] {
+  // Clean each genre: convert spaces to hyphens, remove non-word characters
+  const cleaned = genres.map(g =>
+    g.replace(/\s+/g, '-').replace(/[^\w-]/g, '')
+  ).filter(g => g.length > 0) // Remove empty strings
+
+  // Remove duplicates and sort
+  return Array.from(new Set(cleaned)).sort()
+}
+
 export async function suggestPhrases(genre: string): Promise<string[]> {
   const client = getDataClient()
   // Use first word only for matching

@@ -2,10 +2,11 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useAuthenticator } from '@aws-amplify/ui-react'
 import { Link, useSearch } from '@tanstack/react-router'
-import { createPhraseSet, suggestPhrases, listAvailableGenres } from '../lib/api'
+import { createPhraseSet, suggestPhrases, searchGenres } from '../lib/api'
 import type { PhraseSet } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
 import { contentHasProfanity, containsProfanity } from '../lib/profanity'
+import { PhraseHelp } from '../components/PhraseHelp'
 
 export function CreatePage() {
   const search = useSearch({ from: '/create' }) as any
@@ -21,6 +22,7 @@ export function CreatePage() {
   const [title, setTitle] = useState('Bingo Bolt')
   const [isTitleDirty, setIsTitleDirty] = useState(false)
   const [genre, setGenre] = useState('')
+  const [debouncedGenre, setDebouncedGenre] = useState('')
   const [lastSubmittedGenre, setLastSubmittedGenre] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [freeSpace, setFreeSpace] = useState(true)
@@ -30,6 +32,15 @@ export function CreatePage() {
   const genreInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isSelectingFromDropdown = useRef(false)
+
+  // Debounce genre input for server-side search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedGenre(genre)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [genre])
 
   // Pre-fill form from rebuild params
   useEffect(() => {
@@ -53,25 +64,21 @@ export function CreatePage() {
     }
   }, [search])
 
-  // Fetch available genres for autocomplete
-  const { data: availableGenres = [] } = useQuery({
-    queryKey: ['available-genres'],
-    queryFn: listAvailableGenres,
+  // Server-side genre search with debouncing
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['search-genres', debouncedGenre],
+    queryFn: () => searchGenres(debouncedGenre, 50),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
-  // Filter genres based on input with fuzzy matching and exclude profanity
-  const filteredGenres = genre.trim()
-    ? availableGenres.filter((g) =>
-        g.toLowerCase().includes(genre.toLowerCase()) && !containsProfanity(g)
-      )
-    : availableGenres.filter((g) => !containsProfanity(g))
+  // Filter out profanity from search results
+  const filteredGenres = searchResults.filter((g) => !containsProfanity(g))
   const [phrasesText, setPhrasesText] = useState(
     [''].join(
       '\n'
     )
   )
   const [result, setResult] = useState<PhraseSet | null>(null)
-  const [showPhraseHelp, setShowPhraseHelp] = useState(false)
   const [isPhraseDirty, setIsPhraseDirty] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [showToast, setShowToast] = useState(false)
@@ -167,11 +174,11 @@ export function CreatePage() {
     }
   }
 
-  async function handleSuggest(event: React.FormEvent) {
+  async function handleSuggest(event: React.FormEvent, genreOverride?: string) {
     event.preventDefault()
     suggestMutation.reset()
 
-    const trimmedGenre = genre.trim()
+    const trimmedGenre = (genreOverride || genre).trim()
 
     // Validate genre is provided
     if (!trimmedGenre) return
@@ -209,10 +216,12 @@ export function CreatePage() {
   }
 
   function handleGenreChange(value: string) {
-    // Convert spaces to hyphens
-    const hyphenated = value.replace(/\s+/g, '-')
-    setGenre(hyphenated)
-    setShowSuggestions(hyphenated.length > 0)
+    // Convert spaces to hyphens, then remove all non-word characters (keep letters, numbers, hyphens)
+    const cleaned = value
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]/g, '')
+    setGenre(cleaned)
+    setShowSuggestions(cleaned.length > 0)
     setSelectedIndex(-1)
   }
 
@@ -220,7 +229,23 @@ export function CreatePage() {
     setGenre(selectedGenre)
     setShowSuggestions(false)
     setSelectedIndex(-1)
-    genreInputRef.current?.focus()
+
+    // Auto-submit if different from last submitted
+    if (selectedGenre.trim() && selectedGenre.trim() !== lastSubmittedGenre && !suggestMutation.isPending) {
+      // Pass the selected genre directly instead of relying on state update
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent
+      handleSuggest(fakeEvent, selectedGenre)
+      // Reset flag after blur's timeout would have completed
+      setTimeout(() => {
+        isSelectingFromDropdown.current = false
+      }, 200)
+    } else {
+      genreInputRef.current?.focus()
+      // Reset flag after blur's timeout would have completed
+      setTimeout(() => {
+        isSelectingFromDropdown.current = false
+      }, 200)
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -360,7 +385,21 @@ export function CreatePage() {
                   value={genre}
                   onChange={(e) => handleGenreChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  onFocus={() => setShowSuggestions(genre.length > 0 || availableGenres.length > 0)}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={(e) => {
+                    // Delay to allow dropdown click to complete first
+                    setTimeout(() => {
+                      // Skip auto-submit if user is clicking on dropdown
+                      if (isSelectingFromDropdown.current) {
+                        return
+                      }
+                      // Use the current genre value, not the event value
+                      const trimmedGenre = genre.trim()
+                      if (trimmedGenre && trimmedGenre !== lastSubmittedGenre && !suggestMutation.isPending) {
+                        handleSuggest(e as any)
+                      }
+                    }, 150)
+                  }}
                   placeholder="unicorns, romcom, sci-fi..."
                   maxLength={25}
                   autoComplete="off"
@@ -374,7 +413,11 @@ export function CreatePage() {
                       <button
                         key={g}
                         type="button"
-                        onClick={() => selectGenre(g)}
+                        onMouseDown={(e) => {
+                          e.preventDefault() // Prevent blur from firing
+                          isSelectingFromDropdown.current = true
+                          selectGenre(g)
+                        }}
                         className={`w-full px-4 py-2 text-left text-sm transition ${
                           index === selectedIndex
                             ? 'bg-teal-400/20 text-teal-300'
@@ -394,7 +437,7 @@ export function CreatePage() {
                     ? "inline-flex items-center justify-center rounded-xl bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-teal-400/30 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
                     : "inline-flex items-center justify-center rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                 }
-                disabled={suggestMutation.isPending}
+                disabled={!genre.trim() || suggestMutation.isPending}
               >
                 {suggestMutation.isPending ? 'Generating…' : 'Suggest phrases'}
               </button>
@@ -450,14 +493,7 @@ export function CreatePage() {
               <label className="text-sm font-medium text-slate-200" htmlFor="phrases">
                 Phrases
               </label>
-              <button
-                type="button"
-                onClick={() => setShowPhraseHelp(true)}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-xs font-semibold text-white/90 transition hover:border-white/40 hover:bg-white/10"
-                aria-label="Phrase input help"
-              >
-                ?
-              </button>
+              <PhraseHelp />
             </div>
             <textarea
               id="phrases"
@@ -565,46 +601,6 @@ export function CreatePage() {
           </div>
         ) : null}
       </aside>
-
-      {showPhraseHelp ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur">
-          <div className="w-full max-w-lg rounded-3xl border border-white/15 bg-slate-950/90 p-6 shadow-2xl shadow-black/50">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.3em] text-teal-300">Phrases</p>
-                <h3 className="text-2xl font-bold text-white">Formatting tips</h3>
-              </div>
-              <button
-                onClick={() => setShowPhraseHelp(false)}
-                className="rounded-full border border-white/15 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/10"
-                aria-label="Close phrase help"
-              >
-                Close
-              </button>
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-slate-200">
-              <p>Each line becomes one candidate phrase for the board.</p>
-              <ul className="space-y-2">
-                <li>
-                  <span className="font-semibold text-white">One per line:</span> Write phrases on separate lines.
-                </li>
-                <li>
-                  <span className="font-semibold text-white">OR options:</span> Use a pipe <code className="rounded bg-slate-800 px-1 py-0.5">|</code>{' '}
-                  to randomize one choice, e.g. <code className="rounded bg-slate-800 px-1 py-0.5">Snow cone | Churro</code>.
-                </li>
-                <li>
-                  <span className="font-semibold text-white">Priority:</span> Start a line with an asterisk to force it onto the board, e.g.{' '}
-                  <code className="rounded bg-slate-800 px-1 py-0.5">*Front row seats</code>.
-                </li>
-                <li>
-                  Aim for at least 30 phrases for a full 5×5 grid (center is FREE, so you need 24+ to fill it).
-                </li>
-                <li>Grid scales with phrase count: <br></br>&lt;4 → 1×1, &lt;9 → 2×2, &lt;16 → 3×3, &lt;24 → 4×4, otherwise 5×5.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {showToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-300">

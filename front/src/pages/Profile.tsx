@@ -6,6 +6,7 @@ import { fetchMyPhraseSets, fetchMySessions, orphanPhraseSet, updatePhraseSet, d
 import type { PhraseSet, PlaySession } from '../types'
 import { useUserInfo } from '../contexts/UserContext'
 import { contentHasProfanity } from '../lib/profanity'
+import { PhraseHelp } from '../components/PhraseHelp'
 
 export function ProfilePage() {
   const { displayName, email } = useUserInfo();
@@ -263,9 +264,12 @@ export function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="edit-phrases">
-                Phrases
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-200" htmlFor="edit-phrases">
+                  Phrases
+                </label>
+                <PhraseHelp />
+              </div>
               <textarea
                 id="edit-phrases"
                 className="min-h-[180px] w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white shadow-inner shadow-black/40 outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-300/50"
