@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Bingo Builder: A full-stack bingo game application where users create custom phrase sets, share them via codes, and play bingo with dynamic grids. Currently transitioning from an in-memory Express API to AWS Amplify backend.
+Bingo Bolt: A full-stack bingo game application where users create custom phrase sets, share them via codes, and play bingo with dynamic grids. Currently transitioning from an in-memory Express API to AWS Amplify backend.
 
 **Stack:**
 - Backend: Node + Express (TypeScript, in-memory) - being phased out

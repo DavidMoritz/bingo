@@ -108,6 +108,31 @@ function AppLayout() {
         <main className="mx-auto max-w-5xl px-4 sm:px-6 py-4 sm:py-10">
           <Outlet />
         </main>
+
+        <footer className="border-t border-white/5 bg-white/5 backdrop-blur mt-auto">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-400">
+              <small className="text-center sm:text-left">
+                &copy; 2025 Bingo Bolt &bull;{' '}
+                <a
+                  href="/terms-of-service.html"
+                  target="_blank"
+                  className="hover:text-slate-200 transition"
+                >
+                  Terms of Service
+                </a>
+              </small>
+              <a
+                href="https://paypal.me/rankedchoices"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-slate-200 transition"
+              >
+                🧸 Buy me a bear?
+              </a>
+            </div>
+          </div>
+        </footer>
       </div>
     </UserProvider>
   )
