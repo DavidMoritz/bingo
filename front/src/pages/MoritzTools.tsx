@@ -20,12 +20,32 @@ async function checkDeviceApproval(deviceId: string): Promise<boolean> {
   }
 }
 
+async function deductTime(deviceId: string, minutes: number): Promise<{ success: boolean; message?: string; finalTimeToday?: number }> {
+  try {
+    const response = await fetch(`${API_ENDPOINT}/deduct`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': deviceId,
+      },
+      body: JSON.stringify({ minutes }),
+    })
+    const data = await response.json()
+    return { success: data.success, message: data.message, finalTimeToday: data.finalTimeToday }
+  } catch (error) {
+    console.error('Error deducting time:', error)
+    return { success: false, message: 'Failed to deduct time' }
+  }
+}
+
 export default function MoritzTools() {
   const navigate = useNavigate()
   const search = useSearch({ from: '/moritz-tools' })
   const [deviceId, setDeviceId] = useState<string | null>(null)
   const [isApproved, setIsApproved] = useState<boolean | null>(null)
   const [isChecking, setIsChecking] = useState(true)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [isDeducting, setIsDeducting] = useState(false)
 
   useEffect(() => {
     const code = (search as { code?: string }).code
@@ -63,6 +83,26 @@ export default function MoritzTools() {
         </div>
       </>
     )
+  }
+
+  const handleDeduct = async (minutes: number) => {
+    if (!deviceId || isDeducting) return
+
+    setIsDeducting(true)
+    setStatusMessage('Processing...')
+
+    const result = await deductTime(deviceId, minutes)
+
+    if (result.success) {
+      setStatusMessage(`✅ ${result.message} Final time today: ${result.finalTimeToday} minutes`)
+    } else {
+      setStatusMessage(`❌ ${result.message || 'Failed to deduct time'}`)
+    }
+
+    setIsDeducting(false)
+
+    // Clear message after 5 seconds
+    setTimeout(() => setStatusMessage(null), 5000)
   }
 
   if (!isApproved) {
@@ -108,23 +148,37 @@ export default function MoritzTools() {
           </div>
         </div>
 
-        {/* Time Deduction Controls - Coming Soon */}
+        {/* Time Deduction Controls */}
         <div className="bg-slate-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Deduct Time</h3>
           <div className="grid grid-cols-3 gap-4">
-            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded">
+            <button
+              onClick={() => handleDeduct(5)}
+              disabled={isDeducting}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded transition"
+            >
               -5 min
             </button>
-            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded">
+            <button
+              onClick={() => handleDeduct(10)}
+              disabled={isDeducting}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded transition"
+            >
               -10 min
             </button>
-            <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded">
+            <button
+              onClick={() => handleDeduct(15)}
+              disabled={isDeducting}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded transition"
+            >
               -15 min
             </button>
           </div>
-          <p className="text-slate-400 text-sm mt-4">
-            Lambda functions not yet deployed. Buttons will be functional once backend is ready.
-          </p>
+          {statusMessage && (
+            <p className="text-slate-300 text-sm mt-4 p-3 bg-slate-900 rounded">
+              {statusMessage}
+            </p>
+          )}
         </div>
       </div>
     </>
