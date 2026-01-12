@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { getDeviceId, getDeviceInfo } from '../lib/deviceFingerprint'
+import { getDeviceId } from '../lib/deviceFingerprint'
 
 // TODO: Replace with actual API endpoint once Lambda is deployed
 const API_ENDPOINT = import.meta.env.VITE_MORITZ_API_URL || 'http://localhost:3001'
