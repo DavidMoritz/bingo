@@ -1,0 +1,26 @@
+{
+  "name": "moritz-nintendo-switch-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda functions for Nintendo Switch Parental Controls Time Management",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nintendo",
+    "switch",
+    "parental-controls",
+    "aws",
+    "lambda"
+  ],
+  "author": "David Moritz",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.705.0",
+    "@aws-sdk/lib-dynamodb": "^3.705.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

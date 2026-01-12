@@ -8,6 +8,7 @@ import HomePage from './pages/Home'
 import JoinPage from './pages/Join'
 import ProfilePage from './pages/Profile'
 import LoginPage from './pages/Login'
+import MoritzTools from './pages/MoritzTools'
 import { fetchPhraseSet, fetchPlaySession, fetchMySessions } from './lib/api'
 import SessionGameWrapper from './pages/SessionGameWrapper'
 import { useUserInfo } from './contexts/UserContext'
@@ -49,6 +50,12 @@ const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile',
   component: ProfilePage,
+})
+
+const moritzToolsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/moritz-tools',
+  component: MoritzTools,
 })
 
 const gameRoute = createRoute({
@@ -99,6 +106,7 @@ const routeTree = rootRoute.addChildren([
   joinRoute,
   loginRoute,
   profileRoute,
+  moritzToolsRoute,
   sessionRoute,
   gameRoute,
 ])
